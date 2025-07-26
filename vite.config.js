@@ -1,9 +1,9 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import { resolve, dirname } from 'path'
-import { fileURLToPath } from 'url'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
@@ -20,14 +20,18 @@ export default defineConfig({
         '@fortawesome/fontawesome-svg-core',
         '@fortawesome/free-solid-svg-icons',
         '@fortawesome/react-fontawesome',
-        'react-markdown'
+        'react-markdown',
       ],
       output: {
         globals: {
           react: 'React',
           'react-dom': 'ReactDOM',
+          '@fortawesome/fontawesome-svg-core': 'FontAwesomeCore',
+          '@fortawesome/free-solid-svg-icons': 'FontAwesomeIcons',
+          '@fortawesome/react-fontawesome': 'ReactFontAwesome',
+          'react-markdown': 'ReactMarkdown',
         },
       },
     },
   },
-})
+});
