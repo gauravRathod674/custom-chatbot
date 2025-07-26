@@ -1,42 +1,30 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+/* 1. Tailwind Directives:
+  These are required for Tailwind CSS to work correctly. They inject
+  Tailwind's base styles, component classes, and utility classes.
+*/
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 2. Custom Scrollbar Styling:
+  This adds a professional, custom-styled scrollbar to the chatbot's 
+  message list, replacing the default browser scrollbar.
+*/
+.chatbot-messages-list::-webkit-scrollbar {
+  width: 8px;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.chatbot-messages-list::-webkit-scrollbar-track {
+  background-color: #f1f5f9; /* A light gray track */
+  border-radius: 10px;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.chatbot-messages-list::-webkit-scrollbar-thumb {
+  background-color: #94a3b8; /* A muted, darker gray thumb */
+  border-radius: 10px;
+  border: 2px solid #f1f5f9; /* Creates padding around thumb */
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
+.chatbot-messages-list::-webkit-scrollbar-thumb:hover {
+  background-color: #64748b; /* Darker on hover */
 }
