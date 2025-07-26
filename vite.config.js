@@ -14,7 +14,14 @@ export default defineConfig({
       fileName: (format) => `custom-chatbot.${format}.js`,
     },
     rollupOptions: {
-      external: ['react', 'react-dom'],
+      external: [
+        'react',
+        'react-dom',
+        '@fortawesome/fontawesome-svg-core',
+        '@fortawesome/free-solid-svg-icons',
+        '@fortawesome/react-fontawesome',
+        'react-markdown'
+      ],
       output: {
         globals: {
           react: 'React',
