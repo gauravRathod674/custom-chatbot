@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { ChatBot } from "./index";
 import "./App.css";
 
-const GEMINI_API_KEY = "AIzaSyBi0O2XvJRpWngtjvv2JswmGfnhESCy_20";
+const GEMINI_API_KEY = "YOUR_API_KEY_HERE";
 
 const GeniusIcon = () => (
   <svg
