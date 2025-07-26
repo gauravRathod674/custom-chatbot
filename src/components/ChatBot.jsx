@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCommentDots } from "@fortawesome/free-solid-svg-icons";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import ReactMarkdown from "react-markdown";
 
 // JSDoc for type-hinting in JS environments
 /**
@@ -45,6 +46,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
  * @property {string} window.width - Width of the chat window.
  * @property {string} window.height - Height of the chat window.
  * @property {string} window.placement - Placement on screen ('bottom-right', 'bottom-left').
+ * @property {string} [window.scrollbarThumbColor] - Color of the scrollbar thumb.
+ * @property {string} [window.scrollbarTrackColor] - Color of the scrollbar track.
  */
 
 // --- Helper Components & Icons ---
@@ -115,7 +118,7 @@ const formatHistoryForApi = (messages) => {
   if (!messages || messages.length === 0) {
     return history;
   }
-  
+
   // Merge consecutive messages from the same sender
   const mergedMessages = messages.reduce((acc, current) => {
     const lastMessage = acc[acc.length - 1];
@@ -128,13 +131,13 @@ const formatHistoryForApi = (messages) => {
   }, []);
 
   // Map to the Gemini API format
-  let apiHistory = mergedMessages.map(msg => ({
-    role: msg.sender === 'bot' ? 'model' : 'user',
+  let apiHistory = mergedMessages.map((msg) => ({
+    role: msg.sender === "bot" ? "model" : "user",
     parts: [{ text: msg.text }],
   }));
 
   // Ensure the history starts with a user message
-  const firstUserIndex = apiHistory.findIndex(msg => msg.role === 'user');
+  const firstUserIndex = apiHistory.findIndex((msg) => msg.role === "user");
   if (firstUserIndex > -1) {
     apiHistory = apiHistory.slice(firstUserIndex);
   } else {
@@ -144,7 +147,6 @@ const formatHistoryForApi = (messages) => {
 
   return apiHistory;
 };
-
 
 // --- Main ChatBot Component ---
 
@@ -176,9 +178,14 @@ const ChatBot = ({
   geminiApiKey,
   messages: controlledMessages, // This is for the "Power User" case
 }) => {
+  const [chatbotId] = useState(
+    () => `chatbot-instance-${Math.random().toString(36).substring(2, 9)}`
+  );
   const [isOpen, setIsOpen] = useState(initialIsOpen);
-   const [internalMessages, setInternalMessages] = useState(() => {
-    return welcomeMessage ? [{ id: 1, text: welcomeMessage, sender: "bot" }] : [];
+  const [internalMessages, setInternalMessages] = useState(() => {
+    return welcomeMessage
+      ? [{ id: 1, text: welcomeMessage, sender: "bot" }]
+      : [];
   });
   const [inputValue, setInputValue] = useState("");
   const [isBotTyping, setIsBotTyping] = useState(false);
@@ -205,6 +212,8 @@ const ChatBot = ({
 
   // --- Theming Engine ---
   const mergedTheme = useMemo(() => {
+    const isCenterPlacement = theme?.window?.placement === "center";
+
     const defaultTheme = {
       launcher: {
         backgroundColor: "#4f46e5",
@@ -239,9 +248,16 @@ const ChatBot = ({
         backgroundColor: "#ffffff",
         borderColor: "#e5e7eb",
         borderRadius: "0.75rem",
-        width: "22rem",
-        height: "30rem",
+        width: isCenterPlacement ? "80vw" : "22rem",
+        height: isCenterPlacement ? "80vh" : "30rem",
         placement: "bottom-right",
+
+        backdrop: false,
+        backdropColor: "rgba(0, 0, 0, 0.4)",
+        backdropBlur: "4px",
+
+        scrollbarThumbColor: "#a1a1aa", // neutral-400
+        scrollbarTrackColor: "#f1f5f9", // slate-100
       },
     };
     // Deep merge user theme with defaults
@@ -292,6 +308,48 @@ const ChatBot = ({
 
   // --- Effects ---
 
+  useEffect(() => {
+    const thumbColor = mergedTheme.window.scrollbarThumbColor;
+    const trackColor = mergedTheme.window.scrollbarTrackColor;
+    const styleId = `scrollbar-style-${chatbotId}`;
+
+    // Remove any old style element before adding a new one
+    document.getElementById(styleId)?.remove();
+
+    const styleElement = document.createElement("style");
+    styleElement.id = styleId;
+    styleElement.innerHTML = `
+      /* Modern browsers */
+      #${chatbotId} .chatbot-message-list {
+        scrollbar-width: thin;
+        scrollbar-color: ${thumbColor} ${trackColor};
+      }
+      /* WebKit-based browsers (Chrome, Safari, Edge) */
+      #${chatbotId} .chatbot-message-list::-webkit-scrollbar {
+        width: 8px;
+      }
+      #${chatbotId} .chatbot-message-list::-webkit-scrollbar-track {
+        background: ${trackColor};
+        border-radius: 4px;
+      }
+      #${chatbotId} .chatbot-message-list::-webkit-scrollbar-thumb {
+        background-color: ${thumbColor};
+        border-radius: 4px;
+        border: 2px solid ${trackColor};
+      }
+    `;
+    document.head.appendChild(styleElement);
+
+    // Cleanup function to remove the style when the component unmounts
+    return () => {
+      document.getElementById(styleId)?.remove();
+    };
+  }, [
+    chatbotId,
+    mergedTheme.window.scrollbarThumbColor,
+    mergedTheme.window.scrollbarTrackColor,
+  ]);
+
   // **FIX**: Sync internal typing state with the external `isTyping` prop.
   useEffect(() => {
     setIsBotTyping(parentIsTyping);
@@ -324,15 +382,19 @@ const ChatBot = ({
 
   // --- Handlers ---
 
- const handleSend = useCallback(async () => {
+  const handleSend = useCallback(async () => {
     const trimmedInput = inputValue.trim();
     if (!trimmedInput || disabled || isBotTyping || parentIsTyping) return;
 
-    const newUserMessage = { id: Date.now(), text: trimmedInput, sender: "user" };
+    const newUserMessage = {
+      id: Date.now(),
+      text: trimmedInput,
+      sender: "user",
+    };
     const newMessages = [...messages, newUserMessage];
 
     if (!isControlled) {
-      setMessages(prev => [...prev, newUserMessage]);
+      setMessages((prev) => [...prev, newUserMessage]);
     }
     onSend(trimmedInput);
     setInputValue("");
@@ -345,32 +407,50 @@ const ChatBot = ({
 
         // The last message is the new user input, which should not be in the history.
         const historyForContext = chatHistory.slice(0, -1);
-        const lastUserMessage = chatHistory[chatHistory.length - 1]?.parts[0]?.text || '';
-        
+        const lastUserMessage =
+          chatHistory[chatHistory.length - 1]?.parts[0]?.text || "";
+
         const chat = geminiModel.startChat({ history: historyForContext });
         const result = await chat.sendMessage(lastUserMessage);
 
         const response = await result.response;
         const text = response.text();
         const botResponse = { id: Date.now() + 1, text, sender: "bot" };
-        setMessages(prev => [...prev, botResponse]);
-
+        setMessages((prev) => [...prev, botResponse]);
       } catch (error) {
         console.error("Gemini API Error:", error);
-        const errorResponse = { id: Date.now() + 1, text: "Sorry, an error occurred. Please try again.", sender: "bot" };
-        setMessages(prev => [...prev, errorResponse]);
+        const errorResponse = {
+          id: Date.now() + 1,
+          text: "Sorry, an error occurred. Please try again.",
+          sender: "bot",
+        };
+        setMessages((prev) => [...prev, errorResponse]);
       } finally {
         setIsBotTyping(false);
       }
     } else if (!isControlled) {
       setIsBotTyping(true);
       setTimeout(() => {
-        const defaultBotResponse = { id: Date.now() + 1, text: `You said: "${trimmedInput}"`, sender: "bot" };
-        setMessages(prev => [...prev, defaultBotResponse]);
+        const defaultBotResponse = {
+          id: Date.now() + 1,
+          text: `You said: "${trimmedInput}"`,
+          sender: "bot",
+        };
+        setMessages((prev) => [...prev, defaultBotResponse]);
         setIsBotTyping(false);
       }, 800);
     }
-  }, [inputValue, disabled, isBotTyping, parentIsTyping, onSend, geminiModel, isControlled, messages, setMessages]);
+  }, [
+    inputValue,
+    disabled,
+    isBotTyping,
+    parentIsTyping,
+    onSend,
+    geminiModel,
+    isControlled,
+    messages,
+    setMessages,
+  ]);
   const handleKeyPress = useCallback(
     (e) => {
       if (e.key === "Enter") {
@@ -400,7 +480,10 @@ const ChatBot = ({
   const placementClasses = {
     "bottom-right": "bottom-5 right-5",
     "bottom-left": "bottom-5 left-5",
+    center: "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
   };
+
+  const isCenterPlacement = mergedTheme.window.placement === "center";
 
   const bubbleShapeClasses = {
     rounded: `rounded-xl`,
@@ -408,7 +491,7 @@ const ChatBot = ({
   };
 
   return (
-    <div style={cssVariables} className="font-sans">
+    <div id={chatbotId} style={cssVariables} className="font-sans">
       {/* --- Launcher Button --- */}
       <AnimatePresence>
         {!isOpen && (
@@ -420,10 +503,7 @@ const ChatBot = ({
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className={`fixed ${
-              placementClasses[mergedTheme.window.placement] ||
-              placementClasses["bottom-right"]
-            } z-50 rounded-full shadow-lg flex items-center justify-center cursor-pointer border-2 border-white/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[--chatbot-launcher-bg]`}
+            className="fixed bottom-10 right-10 z-50 rounded-full shadow-lg flex items-center justify-center cursor-pointer border-2 border-white/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[--chatbot-launcher-bg]"
             style={{
               backgroundColor: "var(--chatbot-launcher-bg)",
               color: "var(--chatbot-launcher-icon-color)",
@@ -438,6 +518,22 @@ const ChatBot = ({
 
       {/* --- Chat Window --- */}
       <AnimatePresence>
+        {isOpen && isCenterPlacement && mergedTheme.window.backdrop && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              backgroundColor: mergedTheme.window.backdropColor,
+              backdropFilter: `blur(${mergedTheme.window.backdropBlur})`,
+              // For Safari compatibility
+              WebkitBackdropFilter: `blur(${mergedTheme.window.backdropBlur})`,
+            }}
+            className="fixed inset-0 z-40"
+            onClick={() => setIsOpen(false)}
+          />
+        )}
+
         {isOpen && (
           <div
             ref={windowRef}
@@ -503,7 +599,7 @@ const ChatBot = ({
             <div
               role="log"
               aria-live="polite"
-              className="flex-1 p-4 overflow-y-auto space-y-4"
+              className="chatbot-message-list flex-1 p-4 overflow-y-auto space-y-4"
             >
               {messages.map((msg) => (
                 <div
@@ -545,9 +641,12 @@ const ChatBot = ({
                       fontSize: "var(--chatbot-msg-font-size)",
                     }}
                   >
-                    <p className="whitespace-pre-wrap break-words">
-                      {msg.text}
-                    </p>
+                    <div
+                      className="prose prose-sm max-w-none text-inherit prose-p:my-0 prose-headings:my-2 prose-ul:my-1 prose-li:my-0.5"
+                      style={{ color: "inherit" }} // Ensures prose color matches bot/user text color
+                    >
+                      <ReactMarkdown>{msg.text}</ReactMarkdown>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -610,7 +709,7 @@ const ChatBot = ({
                     "--tw-ring-color": "var(--chatbot-user-msg-bg)",
                   }}
                 >
-                  Send
+                  <SendIcon />
                 </button>
               </div>
             </footer>

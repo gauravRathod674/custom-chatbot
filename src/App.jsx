@@ -1,52 +1,84 @@
-import React, { useState } from 'react';
-import { ChatBot } from './index';
-import './App.css';
+import React, { useState } from "react";
+import { ChatBot } from "./index";
+import "./App.css";
 
 const GEMINI_API_KEY = "AIzaSyBi0O2XvJRpWngtjvv2JswmGfnhESCy_20";
 
-
 const GeniusIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 21v-1.5M12 5.25v13.5" />
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3.75a9 9 0 018.883 9.75H3.117A9 9 0 0112 3.75z" />
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    className="w-full h-full"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 21v-1.5M12 5.25v13.5"
+    />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M12 3.75a9 9 0 018.883 9.75H3.117A9 9 0 0112 3.75z"
+    />
   </svg>
 );
 
 function App() {
   const [powerUserMessages, setPowerUserMessages] = useState([
-    { id: 1, text: "I am a fully controlled bot. Ask me anything!", sender: 'bot' }
+    {
+      id: 1,
+      text: "I am a fully controlled bot. Ask me anything!",
+      sender: "bot",
+    },
   ]);
   const [isTyping, setIsTyping] = useState(false);
 
   const handlePowerUserSend = (userMessage) => {
-    setPowerUserMessages(prev => [...prev, { id: Date.now(), text: userMessage, sender: 'user' }]);
+    setPowerUserMessages((prev) => [
+      ...prev,
+      { id: Date.now(), text: userMessage, sender: "user" },
+    ]);
     setIsTyping(true);
     setTimeout(() => {
       const botResponse = `This is my simulated AI response to: "${userMessage}"`;
-      setPowerUserMessages(prev => [...prev, { id: Date.now() + 1, text: botResponse, sender: 'bot' }]);
+      setPowerUserMessages((prev) => [
+        ...prev,
+        { id: Date.now() + 1, text: botResponse, sender: "bot" },
+      ]);
       setIsTyping(false);
     }, 2000);
   };
 
   const corporateTheme = {
-    launcher: { backgroundColor: '#1e3a8a', iconColor: '#dbeafe' },
-    header: { backgroundColor: '#1e3a8a', textColor: '#eff6ff' },
+    launcher: { backgroundColor: "#1e3a8a", iconColor: "#dbeafe" },
+    header: { backgroundColor: "#1e3a8a", textColor: "#eff6ff" },
     messages: {
-      userBackgroundColor: '#2563eb',
-      botBackgroundColor: '#eef2ff',
-      botTextColor: '#1e3a8a',
-      bubbleShape: 'square',
+      userBackgroundColor: "#2563eb",
+      botBackgroundColor: "#eef2ff",
+      botTextColor: "#1e3a8a",
+      bubbleShape: "square",
       bubblePointer: false,
     },
-    input: { focusRingColor: '#2563eb' },
-    window: { placement: 'bottom-left', borderRadius: '0.25rem', borderColor: '#dbeafe' },
+    input: { focusRingColor: "#2563eb" },
+    window: {
+      placement: "bottom-left",
+      borderRadius: "0.25rem",
+      borderColor: "#dbeafe",
+    },
   };
 
   return (
     <div className="bg-gray-50 min-h-screen w-full font-sans text-gray-800 p-8">
       <header className="text-center mb-12">
-        <h1 className="text-5xl font-bold text-blue-900">ChatBot Component Playground</h1>
-        <p className="text-gray-600 mt-3 text-lg">A showcase of the <code>ChatBot</code> library's versatility and customization.</p>
+        <h1 className="text-5xl font-bold text-blue-900">
+          ChatBot Component Playground
+        </h1>
+        <p className="text-gray-600 mt-3 text-lg">
+          A showcase of the <code>ChatBot</code> library's versatility and
+          customization.
+        </p>
       </header>
 
       <main className="grid grid-cols-1 md:grid-cols-2 gap-16 items-start">
@@ -55,7 +87,7 @@ function App() {
           <p className="mb-4 text-gray-600">This developer wants a chatbot that just works. No props are passed, so the component uses its beautiful, built-in defaults.</p>
           <ChatBot />
         </div> */}
-{/* 
+        {/* 
         <div className="p-6 bg-white rounded-xl shadow-md border border-gray-200">
           <h2 className="text-2xl font-semibold mb-2 text-green-800">2. The "Minimalist" User</h2>
           <p className="mb-4 text-gray-600">This developer only needs to change the bot's identity. They pass a few simple props to set the name and welcome message.</p>
@@ -68,7 +100,7 @@ function App() {
           <ChatBot botName="CorpBot" botAvatar="https://placehold.co/40x40/1e3a8a/ffffff?text=C" welcomeMessage="Welcome. How may I be of assistance?" placeholderText="Enter corporate inquiry..." theme={corporateTheme} />
         </div> */}
 
-        <div className="p-6 bg-white rounded-xl shadow-md border border-gray-200">
+        {/* <div className="p-6 bg-white rounded-xl shadow-md border border-gray-200">
           <h2 className="text-2xl font-semibold mb-2 text-purple-800">4. The "Power User"</h2>
           <p className="mb-4 text-gray-600">This developer is integrating a live API. They manage the conversation state and use `onSend`, `isTyping`, and the `messages` prop for full control.</p>
           <ChatBot
@@ -88,7 +120,7 @@ function App() {
               input: { focusRingColor: '#8b5cf6' }
             }}
           />
-        </div>
+        </div> */}
 
         {/* <div className="p-6 bg-white rounded-xl shadow-md border border-gray-200">
           <h2 className="text-2xl font-semibold mb-2 text-red-800">5. The "Gemini-Powered" Bot</h2>
@@ -109,7 +141,39 @@ function App() {
           />
         </div> */}
 
-        
+        <div className="p-6 bg-white rounded-xl shadow-md border border-gray-200">
+          <h2 className="text-2xl font-semibold mb-2 text-red-800">
+            {" "}
+            6. The "Main Feature" Bot
+          </h2>
+          <p className="mb-4 text-gray-600">
+            This developer has provided a Gemini API key. The bot is now a real
+            AI assistant that can answer questions.
+          </p>
+          <ChatBot
+            botName="Central Intelligence"
+            welcomeMessage="Welcome to the main event. I have your full attention now. What can I do for you?"
+            geminiApiKey={GEMINI_API_KEY}
+            theme={{
+              window: {
+                placement: "center",
+                // You can still override the larger default size if you want
+                width: "60vw",
+                height: "70vh",
+                backdrop: true,
+                backdropColor: "rgba(0, 0, 0, 0.5)",
+                backdropBlur: "8px",
+
+                scrollbarThumbColor: "#0891b2", // A darker cyan
+                scrollbarTrackColor: "#f0f9ff", // A very light blue
+              },
+              launcher: { backgroundColor: "#0e7490" },
+              header: { backgroundColor: "#0e7490" },
+              messages: { userBackgroundColor: "#06b6d4" },
+              input: { focusRingColor: "#06b6d4" },
+            }}
+          />
+        </div>
       </main>
     </div>
   );
