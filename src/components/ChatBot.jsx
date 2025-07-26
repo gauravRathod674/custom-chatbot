@@ -1,315 +1,359 @@
-import React, { useState, useRef, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-// ——— Default Icons ——————————————————————————————
+// JSDoc for type-hinting in JS environments
+/**
+ * @typedef {Object} ChatBotTheme
+ * @property {Object} launcher - Launcher button styles.
+ * @property {string} launcher.backgroundColor - Background color for the launcher.
+ * @property {string} launcher.iconColor - Color of the icon in the launcher.
+ * @property {string} launcher.size - Size of the launcher button (e.g., '3rem').
+ * @property {Object} header - Header styles.
+ * @property {string} header.backgroundColor - Background color for the header.
+ * @property {string} header.textColor - Text color for the header.
+ * @property {string} header.fontFamily - Font family for the header.
+ * @property {string} header.fontWeight - Font weight for the header.
+ * @property {Object} messages - Message bubble styles.
+ * @property {string} messages.userBackgroundColor - Background color for user messages.
+ * @property {string} messages.userTextColor - Text color for user messages.
+ * @property {string} messages.botBackgroundColor - Background color for bot messages.
+ * @property {string} messages.botTextColor - Text color for bot messages.
+ * @property {string} messages.fontFamily - Font family for messages.
+ * @property {string} messages.fontSize - Font size for messages.
+ * @property {boolean} messages.showAvatars - Whether to show avatars next to messages.
+ * @property {string} messages.bubbleShape - Shape of the message bubbles ('rounded', 'square').
+ * @property {boolean} messages.bubblePointer - Whether to show a pointer on the message bubble.
+ * @property {Object} input - Input area styles.
+ * @property {string} input.backgroundColor - Background color for the input bar.
+ * @property {string} input.textColor - Text color for the input field.
+ * @property {string} input.placeholderTextColor - Placeholder text color.
+ * @property {string} input.borderColor - Border color for the input field.
+ * @property {string} input.focusRingColor - Color of the focus ring on the input.
+ * @property {Object} window - Main chat window styles.
+ * @property {string} window.backgroundColor - Background color for the chat window.
+ * @property {string} window.borderColor - Border color for the chat window.
+ * @property {string} window.borderRadius - Border radius for the main window.
+ * @property {string} window.width - Width of the chat window.
+ * @property {string} window.height - Height of the chat window.
+ * @property {string} window.placement - Placement on screen ('bottom-right', 'bottom-left').
+ */
 
-const DefaultBotAvatar = () => (
-  <svg className="w-full h-full text-gray-500" viewBox="0 0 24 24" fill="none">
-    <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.5" />
-    <path d="M9 11h.01M15 11h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-    <path d="M8 15c1.333-1.333 5.333-1.333 6.667 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+// --- Helper Components & Icons ---
+
+const DefaultBotIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full">
+    <path d="M12 4C7.58172 4 4 7.58172 4 12C4 16.4183 7.58172 20 12 20C16.4183 20 20 16.4183 20 12C20 7.58172 16.4183 4 12 4Z" />
+    <path d="M16.5 14C16.5 14 15 15.5 12 15.5C9 15.5 7.5 14 7.5 14" strokeLinecap="round" />
+    <circle cx="9" cy="10" r="1" fill="currentColor" /><circle cx="15" cy="10" r="1" fill="currentColor" />
   </svg>
-)
+);
 
-const DefaultUserAvatar = () => (
-  <svg className="w-full h-full text-gray-500" viewBox="0 0 24 24" fill="none">
-    <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" stroke="currentColor" strokeWidth="1.5" />
-    <path d="M4 20c0-4 4-6 8-6s8 2 8 6" stroke="currentColor" strokeWidth="1.5" />
+const DefaultUserIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full">
+    <path d="M12 12C14.2091 12 16 10.2091 16 8C16 5.79086 14.2091 4 12 4C9.79086 4 8 5.79086 8 8C8 10.2091 9.79086 12 12 12Z" strokeLinecap="round" />
+    <path d="M19.21 17.14C19.21 17.14 19 19 12 19C5 19 4.79 17.14 4.79 17.14C4.79 17.14 6.33 15 12 15C17.67 15 19.21 17.14 19.21 17.14Z" strokeLinecap="round" />
   </svg>
-)
+);
 
-// ——— ChatBot Component ——————————————————————————
+const SendIcon = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+    <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
+  </svg>
+);
 
+const TypingIndicator = () => (
+  <div className="flex items-center space-x-1 p-3">
+    <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:-0.3s]"></div>
+    <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:-0.15s]"></div>
+    <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
+  </div>
+);
+
+// --- Main ChatBot Component ---
+
+/**
+ * A highly customizable and performant React ChatBot component.
+ * @param {object} props - The component props.
+ * @param {string} [props.botName='ChatBot'] - The name displayed in the header.
+ * @param {React.ReactNode} [props.botAvatar=<DefaultBotIcon />] - Avatar for the bot. Can be a component or a URL string.
+ * @param {React.ReactNode} [props.userAvatar=<DefaultUserIcon />] - Avatar for the user.
+ * @param {string} [props.welcomeMessage='Hello! How can I help?'] - The initial message from the bot.
+ * @param {string} [props.placeholderText='Type a message...'] - Placeholder for the text input.
+ * @param {boolean} [props.isOpen=false] - Controls if the chat window is open initially.
+ * @param {boolean} [props.disabled=false] - Disables the input field.
+ * @param {boolean} [props.isTyping=false] - Shows a typing indicator.
+ * @param {function(string): void} [props.onSend] - Callback function when a user sends a message. Receives the message text.
+ * @param {ChatBotTheme} [props.theme] - Theming options for the chatbot.
+ */
 const ChatBot = ({
-  // — Core copy & behavior
-  botName            = 'ChatBot',
-  welcomeMessage     = 'Hello! How can I assist you today?',
-  placeholderText    = 'Type your message…',
-  sendButtonLabel    = null,              // text instead of icon
-  sendIcon           = null,              // custom ReactNode icon
-  showTimestamps     = false,
-  timestampFormat    = ts => new Date(ts).toLocaleTimeString(),
-  autoFocus          = true,
-  sendOnEnter        = true,
-
-  // — Avatars & icons
-  botAvatar          = <DefaultBotAvatar />,
-  userAvatar         = <DefaultUserAvatar />,
-
-  // — Theming & typography
-  theme: {
-    primaryColor         = '#4f46e5',
-    secondaryColor       = '#e5e7eb',
-    backgroundColor      = '#ffffff',
-    userTextColor        = '#ffffff',
-    botTextColor         = '#111827',
-    headerTextColor      = '#ffffff',
-    placeholderTextColor = '#6b7280',
-    fontFamily           = 'system-ui, sans-serif',
-    fontSize             = '14px',
-    lineHeight           = '1.5',
-    headerFontSize       = '16px',
-    headerFontWeight     = '600',
-    bubbleFontWeight     = '400',
-    bubbleShape          = 'pill',         // 'pill'|'rounded'|'square'
-    bubblePointer        = true,
-    bubblePadding        = '0.5rem 1rem',
-    bubbleMargin         = '0.25rem 0',
-    windowPadding        = '0',
-    inputHeight          = '2.5rem',
-    inputPadding         = '0.5rem 1rem',
-    borderRadius         = '1rem',
-    inputBorderRadius    = '9999px',
-    borderColor          = '#d1d5db',
-    shadowIntensity      = '0 4px 12px rgba(0,0,0,0.1)',
-    transitionDuration   = 0.2,
-    typingIndicatorStyle = 'dots',         // 'dots'|'bar'|'none'
-    typingDelay          = 500,            // ms
-    openCloseAnimation   = 'scale',        // 'fade'|'slide'|'scale'
-    placement            = 'bottom-right', // 'bottom-left','top-right','top-left'
-    launcherSize         = '3rem',
-    launcherIcon         = '💬',
-    mode                 = 'light',        // 'light'|'dark'
-  } = {},
-
-  // — Layout & wrapper
-  isOpen: initialOpen = true,
-  showLauncher        = true,
-  launcherPosition    = null,             // override placement
-  backdrop            = false,
-  zIndex              = 1000,
-
-  // — ClassName & style overrides
-  wrapperClassName    = '',
-  headerClassName     = '',
-  messageClassName    = '',
-  userMessageClassName= '',
-  botMessageClassName = '',
-  inputClassName      = '',
-  launcherClassName   = '',
-
-  // — Callbacks
-  onSend              = () => {},
-  onReceive           = () => {},
-  onError             = () => {},
+  botName = 'ChatBot',
+  botAvatar = <DefaultBotIcon />,
+  userAvatar = <DefaultUserIcon />,
+  welcomeMessage = 'Hello! How can I help?',
+  placeholderText = 'Type a message...',
+  isOpen: initialIsOpen = false,
+  disabled = false,
+  isTyping = false,
+  onSend = () => {},
+  theme = {},
 }) => {
-  const [isOpen, setIsOpen]     = useState(initialOpen)
-  const [messages, setMessages] = useState([
-    { id: 1, sender: 'bot', text: welcomeMessage, timestamp: Date.now() }
-  ])
-  const [inputValue, setInputValue] = useState('')
-  const scrollRef               = useRef()
+  const [isOpen, setIsOpen] = useState(initialIsOpen);
+  const [messages, setMessages] = useState([{ id: 1, text: welcomeMessage, sender: 'bot' }]);
+  const [inputValue, setInputValue] = useState('');
+  const inputRef = useRef(null);
+  const messagesEndRef = useRef(null);
+  const launcherRef = useRef(null);
+  const windowRef = useRef(null);
 
-  // auto-scroll on new message
+  // --- Theming Engine ---
+  const mergedTheme = useMemo(() => {
+    const defaultTheme = {
+      launcher: { backgroundColor: '#4f46e5', iconColor: '#ffffff', size: '3.5rem' },
+      header: { backgroundColor: '#4f46e5', textColor: '#ffffff', fontFamily: 'inherit', fontWeight: '600' },
+      messages: {
+        userBackgroundColor: '#4f46e5', userTextColor: '#ffffff',
+        botBackgroundColor: '#f3f4f6', botTextColor: '#1f2937',
+        fontFamily: 'inherit', fontSize: '0.9rem',
+        showAvatars: true, bubbleShape: 'rounded', bubblePointer: true,
+      },
+      input: {
+        backgroundColor: '#ffffff', textColor: '#1f2937',
+        placeholderTextColor: '#9ca3af', borderColor: '#e5e7eb',
+        focusRingColor: '#4f46e5',
+      },
+      window: {
+        backgroundColor: '#ffffff', borderColor: '#e5e7eb',
+        borderRadius: '0.75rem', width: '22rem', height: '30rem',
+        placement: 'bottom-right',
+      },
+    };
+    // Deep merge user theme with defaults
+    return {
+      launcher: { ...defaultTheme.launcher, ...theme.launcher },
+      header: { ...defaultTheme.header, ...theme.header },
+      messages: { ...defaultTheme.messages, ...theme.messages },
+      input: { ...defaultTheme.input, ...theme.input },
+      window: { ...defaultTheme.window, ...theme.window },
+    };
+  }, [theme]);
+
+  // --- CSS Variables for Performant Theming ---
+  const cssVariables = useMemo(() => ({
+    // Launcher
+    '--chatbot-launcher-bg': mergedTheme.launcher.backgroundColor,
+    '--chatbot-launcher-icon-color': mergedTheme.launcher.iconColor,
+    '--chatbot-launcher-size': mergedTheme.launcher.size,
+    // Header
+    '--chatbot-header-bg': mergedTheme.header.backgroundColor,
+    '--chatbot-header-text-color': mergedTheme.header.textColor,
+    '--chatbot-header-font-family': mergedTheme.header.fontFamily,
+    '--chatbot-header-font-weight': mergedTheme.header.fontWeight,
+    // Messages
+    '--chatbot-user-msg-bg': mergedTheme.messages.userBackgroundColor,
+    '--chatbot-user-msg-text-color': mergedTheme.messages.userTextColor,
+    '--chatbot-bot-msg-bg': mergedTheme.messages.botBackgroundColor,
+    '--chatbot-bot-msg-text-color': mergedTheme.messages.botTextColor,
+    '--chatbot-msg-font-family': mergedTheme.messages.fontFamily,
+    '--chatbot-msg-font-size': mergedTheme.messages.fontSize,
+    // Input
+    '--chatbot-input-bg': mergedTheme.input.backgroundColor,
+    '--chatbot-input-text-color': mergedTheme.input.textColor,
+    '--chatbot-input-placeholder-color': mergedTheme.input.placeholderTextColor,
+    '--chatbot-input-border-color': mergedTheme.input.borderColor,
+    '--chatbot-input-focus-ring': mergedTheme.input.focusRingColor,
+    // Window
+    '--chatbot-window-bg': mergedTheme.window.backgroundColor,
+    '--chatbot-window-border-color': mergedTheme.window.borderColor,
+    '--chatbot-window-border-radius': mergedTheme.window.borderRadius,
+    '--chatbot-window-width': mergedTheme.window.width,
+    '--chatbot-window-height': mergedTheme.window.height,
+  }), [mergedTheme]);
+
+  // --- Effects ---
+
+  // Auto-scroll to the latest message
   useEffect(() => {
-    scrollRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isTyping]);
 
-  // Placement classes
-  const placementMap = {
-    'bottom-right': 'bottom-5 right-5',
-    'bottom-left':  'bottom-5 left-5',
-    'top-right':    'top-5 right-5',
-    'top-left':     'top-5 left-5',
-  }
-  const containerPos = placementMap[launcherPosition || placement] || placementMap['bottom-right']
-
-  // Add message helper
-  const addMessage = (sender, text) => {
-    const msg = { id: Date.now(), sender, text, timestamp: Date.now() }
-    setMessages(m => [...m, msg])
-    return msg
-  }
-
-  // Handle send
-  const handleSend = () => {
-    if (!inputValue.trim()) return
-    const userMsg = addMessage('user', inputValue.trim())
-    setInputValue('')
-    onSend(userMsg)
-    // stub typing & bot reply
-    if (typingIndicatorStyle !== 'none') {
-      addMessage('bot', '…') // show typing
-      setTimeout(() => {
-        setMessages(m => m.filter(x => x.text !== '…'))
-        const botMsg = addMessage('bot', 'This is a placeholder reply.')
-        onReceive(botMsg)
-      }, typingDelay)
+  // Focus management for accessibility
+  useEffect(() => {
+    if (isOpen) {
+      inputRef.current?.focus();
+    } else {
+      launcherRef.current?.focus();
     }
-  }
+  }, [isOpen]);
 
-  // Render avatars
-  const renderAvatar = avatar =>
-    typeof avatar === 'string'
-      ? <img src={avatar} className="w-8 h-8 rounded-full" />
-      : <div className="w-8 h-8 rounded-full overflow-hidden">{avatar}</div>
+  // Handle 'Escape' key to close chat
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
 
-  // Styles
-  const wrapperStyle = {
-    fontFamily,
-    fontSize,
-    lineHeight,
-    zIndex,
-  }
-  const headerStyle = {
-    backgroundColor: primaryColor,
-    color: headerTextColor,
-    fontSize: headerFontSize,
-    fontWeight: headerFontWeight,
-    padding: '0.75rem 1rem',
-    borderTopLeftRadius: borderRadius,
-    borderTopRightRadius: borderRadius,
-  }
-  const windowStyle = {
-    backgroundColor,
-    padding: windowPadding,
-    boxShadow: shadowIntensity,
-    border: `1px solid ${borderColor}`,
-    borderRadius,
-    display: 'flex',
-    flexDirection: 'column',
-    width: '20rem',
-    height: '24rem',
-    overflow: 'hidden',
-  }
-  const bubbleBase = {
-    borderRadius: bubbleShape === 'pill' ? '9999px' : borderRadius,
-    padding: bubblePadding,
-    margin: bubbleMargin,
-    maxWidth: '80%',
-    transition: `background-color ${transitionDuration}s`,
-    fontWeight: bubbleFontWeight,
-  }
-  const bubbleStyle = sender => ({
-    ...bubbleBase,
-    alignSelf: sender === 'user' ? 'flex-end' : 'flex-start',
-    backgroundColor: sender === 'user' ? primaryColor : secondaryColor,
-    color: sender === 'user' ? userTextColor : botTextColor,
-  })
-  const inputWrapperStyle = {
-    display: 'flex',
-    borderTop: `1px solid ${borderColor}`,
-    padding: '0.5rem',
-    alignItems: 'center',
-  }
-  const inputStyle = {
-    flex: 1,
-    height: inputHeight,
-    padding: inputPadding,
-    borderRadius: inputBorderRadius,
-    border: `1px solid ${borderColor}`,
-    outline: 'none',
-    color: mode === 'dark' ? '#f3f4f6' : '#111827',
-    backgroundColor: mode === 'dark' ? '#1f2937' : '#f9fafb',
-    fontSize,
-  }
-  const sendBtnStyle = {
-    backgroundColor: primaryColor,
-    color: userTextColor,
-    width: inputHeight,
-    height: inputHeight,
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: '0.5rem',
-    cursor: 'pointer',
-    transition: `background-color ${transitionDuration}s`,
-  }
-  const launcherStyle = {
-    backgroundColor: primaryColor,
-    color: userTextColor,
-    width: launcherSize,
-    height: launcherSize,
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    boxShadow: shadowIntensity,
-  }
+  // --- Handlers ---
+
+  const handleSend = useCallback(() => {
+    const trimmedInput = inputValue.trim();
+    if (!trimmedInput || disabled) return;
+
+    const newMessage = { id: Date.now(), text: trimmedInput, sender: 'user' };
+    setMessages(prev => [...prev, newMessage]);
+    onSend(trimmedInput);
+    setInputValue('');
+  }, [inputValue, disabled, onSend]);
+
+  const handleKeyPress = useCallback((e) => {
+    if (e.key === 'Enter') {
+      handleSend();
+    }
+  }, [handleSend]);
+
+  // --- Sub-Components ---
+
+  const renderAvatar = (avatar) => {
+    if (typeof avatar === 'string') {
+      return <img src={avatar} alt="avatar" className="w-8 h-8 rounded-full object-cover" />;
+    }
+    return <div className="w-8 h-8 rounded-full text-gray-500">{avatar}</div>;
+  };
+
+  const placementClasses = {
+    'bottom-right': 'bottom-5 right-5',
+    'bottom-left': 'bottom-5 left-5',
+  };
+
+  const bubbleShapeClasses = {
+    rounded: `rounded-xl`,
+    square: `rounded-md`,
+  };
 
   return (
-    <div style={wrapperStyle} className={`fixed ${containerPos} ${wrapperClassName}`}>
-      {/* Optional backdrop */}
-      {backdrop && isOpen && (
-        <div className="fixed inset-0 bg-black opacity-30"></div>
-      )}
-
+    <div style={cssVariables} className="font-sans">
+      {/* --- Launcher Button --- */}
       <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={openCloseAnimation === 'scale' ? { scale: 0.8, opacity: 0 } : openCloseAnimation === 'fade' ? { opacity: 0 } : { x: 100, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1, x: 0 }}
-            exit={openCloseAnimation === 'scale' ? { scale: 0.8, opacity: 0 } : openCloseAnimation === 'fade' ? { opacity: 0 } : { x: 100, opacity: 0 }}
-            transition={{ duration: transitionDuration }}
-            style={windowStyle}
+        {!isOpen && (
+          <motion.button
+            ref={launcherRef}
+            onClick={() => setIsOpen(true)}
+            aria-label="Open Chat"
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className={`fixed ${placementClasses[mergedTheme.window.placement] || placementClasses['bottom-right']} z-50 rounded-full shadow-lg flex items-center justify-center cursor-pointer border-2 border-white/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[--chatbot-launcher-bg]`}
+            style={{
+              backgroundColor: 'var(--chatbot-launcher-bg)',
+              color: 'var(--chatbot-launcher-icon-color)',
+              width: 'var(--chatbot-launcher-size)',
+              height: 'var(--chatbot-launcher-size)',
+            }}
           >
-            {/* Header */}
-            <div style={headerStyle} className={`flex items-center justify-between ${headerClassName}`}>
-              <div className="flex items-center space-x-2">
-                {renderAvatar(botAvatar)}
-                <span>{botName}</span>
-              </div>
-              <button onClick={() => setIsOpen(false)} className="p-1 hover:opacity-80 focus:outline-none">
-                ✕
-              </button>
-            </div>
-
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-3">
-              {messages.map(msg => (
-                <motion.div
-                  key={msg.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: transitionDuration }}
-                  style={bubbleStyle(msg.sender)}
-                  className={`${messageClassName} ${msg.sender === 'user' ? userMessageClassName : botMessageClassName}`}
-                >
-                  <div className="flex items-end">
-                    {msg.sender === 'bot' && renderAvatar(botAvatar)}
-                    <div className="mx-2 break-words">{msg.text}</div>
-                    {msg.sender === 'user' && renderAvatar(userAvatar)}
-                  </div>
-                  {showTimestamps && (
-                    <div className="text-xs mt-1 text-gray-400 text-right">
-                      {timestampFormat(msg.timestamp)}
-                    </div>
-                  )}
-                </motion.div>
-              ))}
-              <div ref={scrollRef} />
-            </div>
-
-            {/* Input */}
-            <div style={inputWrapperStyle}>
-              <input
-                type="text"
-                autoFocus={autoFocus}
-                value={inputValue}
-                onChange={e => setInputValue(e.target.value)}
-                placeholder={placeholderText}
-                style={inputStyle}
-                className={inputClassName}
-                onKeyDown={e => sendOnEnter && e.key === 'Enter' && handleSend()}
-              />
-              <div style={sendBtnStyle} onClick={handleSend}>
-                {sendButtonLabel || sendIcon || <span className="text-xl select-none">➤</span>}
-              </div>
-            </div>
-          </motion.div>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-2/3 h-2/3"><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193l-3.72.15c-.81.033-1.534.626-1.744 1.416l-1.02 3.988c-.382 1.48-.M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          </motion.button>
         )}
       </AnimatePresence>
 
-      {/* Launcher */}
-      {showLauncher && !isOpen && (
-        <div style={launcherStyle} className={launcherClassName} onClick={() => setIsOpen(true)}>
-          {launcherIcon}
-        </div>
-      )}
-    </div>
-  )
-}
+      {/* --- Chat Window --- */}
+      <AnimatePresence>
+        {isOpen && (
+          <div
+            ref={windowRef}
+            aria-modal="true"
+            role="dialog"
+            className={`fixed ${placementClasses[mergedTheme.window.placement] || placementClasses['bottom-right']} z-50 flex flex-col overflow-hidden shadow-2xl border`}
+            style={{
+                width: 'var(--chatbot-window-width)',
+                height: 'var(--chatbot-window-height)',
+                borderRadius: 'var(--chatbot-window-border-radius)',
+                backgroundColor: 'var(--chatbot-window-bg)',
+                borderColor: 'var(--chatbot-window-border-color)',
+            }}
+          >
+            {/* Header */}
+            <header className="flex items-center justify-between p-3 flex-shrink-0" style={{ background: 'var(--chatbot-header-bg)', color: 'var(--chatbot-header-text-color)' }}>
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-full bg-white/30 flex items-center justify-center p-1">{renderAvatar(botAvatar)}</div>
+                <span style={{ fontFamily: 'var(--chatbot-header-font-family)', fontWeight: 'var(--chatbot-header-font-weight)' }} className="text-lg">{botName}</span>
+              </div>
+              <button onClick={() => setIsOpen(false)} aria-label="Close Chat" className="p-1 rounded-full hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </header>
 
-export default ChatBot
+            {/* Message List */}
+            <div role="log" aria-live="polite" className="flex-1 p-4 overflow-y-auto space-y-4">
+              {messages.map((msg) => (
+                <div key={msg.id} className={`flex items-end max-w-[85%] gap-2 ${msg.sender === 'user' ? 'ml-auto flex-row-reverse' : 'mr-auto'}`}>
+                  {mergedTheme.messages.showAvatars && <div className="w-7 h-7 rounded-full flex-shrink-0 overflow-hidden">{renderAvatar(msg.sender === 'user' ? userAvatar : botAvatar)}</div>}
+                  <div
+                    className={`px-3 py-2 ${bubbleShapeClasses[mergedTheme.messages.bubbleShape] || bubbleShapeClasses.rounded} ${mergedTheme.messages.bubblePointer ? (msg.sender === 'user' ? 'rounded-br-none' : 'rounded-bl-none') : ''}`}
+                    style={{
+                      backgroundColor: msg.sender === 'user' ? 'var(--chatbot-user-msg-bg)' : 'var(--chatbot-bot-msg-bg)',
+                      color: msg.sender === 'user' ? 'var(--chatbot-user-msg-text-color)' : 'var(--chatbot-bot-msg-text-color)',
+                      fontFamily: 'var(--chatbot-msg-font-family)',
+                      fontSize: 'var(--chatbot-msg-font-size)',
+                    }}
+                  >
+                    <p className="whitespace-pre-wrap break-words">{msg.text}</p>
+                  </div>
+                </div>
+              ))}
+              {isTyping && (
+                <div className="flex items-end max-w-[85%] gap-2 mr-auto">
+                  {mergedTheme.messages.showAvatars && <div className="w-7 h-7 rounded-full flex-shrink-0 overflow-hidden">{renderAvatar(botAvatar)}</div>}
+                  <div className={`px-3 py-2 ${bubbleShapeClasses[mergedTheme.messages.bubbleShape] || bubbleShapeClasses.rounded} rounded-bl-none`} style={{ backgroundColor: 'var(--chatbot-bot-msg-bg)' }}>
+                    <TypingIndicator />
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input / Composer */}
+            <footer className="p-3 border-t flex-shrink-0" style={{ borderColor: 'var(--chatbot-window-border-color)', backgroundColor: 'var(--chatbot-input-bg)' }}>
+              <div className="flex items-center space-x-2">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder={placeholderText}
+                  disabled={disabled || isTyping}
+                  aria-label="Chat input"
+                  className="flex-1 w-full px-4 py-2 bg-transparent rounded-full border focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
+                  style={{
+                    color: 'var(--chatbot-input-text-color)',
+                    borderColor: 'var(--chatbot-input-border-color)',
+                    '--tw-ring-color': 'var(--chatbot-input-focus-ring)',
+                  }}
+                />
+                <button
+                  onClick={handleSend}
+                  disabled={!inputValue.trim() || disabled || isTyping}
+                  aria-label="Send Message"
+                  className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    backgroundColor: 'var(--chatbot-user-msg-bg)',
+                    color: 'var(--chatbot-user-msg-text-color)',
+                    '--tw-ring-color': 'var(--chatbot-user-msg-bg)',
+                  }}
+                >
+                  <SendIcon />
+                </button>
+              </div>
+            </footer>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+export default ChatBot;
