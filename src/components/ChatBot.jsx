@@ -6,6 +6,9 @@ import React, {
   useCallback,
 } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCommentDots } from "@fortawesome/free-solid-svg-icons";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // JSDoc for type-hinting in JS environments
 /**
@@ -83,7 +86,6 @@ const DefaultUserIcon = () => (
   </svg>
 );
 
-// **FIX**: Replaced the solid icon with an outline version for better compatibility.
 const SendIcon = () => (
   <svg
     fill="none"
@@ -107,6 +109,42 @@ const TypingIndicator = () => (
     <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
   </div>
 );
+
+const formatHistoryForApi = (messages) => {
+  const history = [];
+  if (!messages || messages.length === 0) {
+    return history;
+  }
+  
+  // Merge consecutive messages from the same sender
+  const mergedMessages = messages.reduce((acc, current) => {
+    const lastMessage = acc[acc.length - 1];
+    if (lastMessage && lastMessage.sender === current.sender) {
+      lastMessage.text += `\n${current.text}`;
+    } else {
+      acc.push({ ...current });
+    }
+    return acc;
+  }, []);
+
+  // Map to the Gemini API format
+  let apiHistory = mergedMessages.map(msg => ({
+    role: msg.sender === 'bot' ? 'model' : 'user',
+    parts: [{ text: msg.text }],
+  }));
+
+  // Ensure the history starts with a user message
+  const firstUserIndex = apiHistory.findIndex(msg => msg.role === 'user');
+  if (firstUserIndex > -1) {
+    apiHistory = apiHistory.slice(firstUserIndex);
+  } else {
+    // If no user messages exist at all, return an empty history
+    return [];
+  }
+
+  return apiHistory;
+};
+
 
 // --- Main ChatBot Component ---
 
@@ -132,23 +170,38 @@ const ChatBot = ({
   placeholderText = "Type a message...",
   isOpen: initialIsOpen = false,
   disabled = false,
-  isTyping = false, // This is the prop for parent-controlled typing
+  isTyping: parentIsTyping = false,
   onSend = () => {},
   theme = {},
+  geminiApiKey,
+  messages: controlledMessages, // This is for the "Power User" case
 }) => {
   const [isOpen, setIsOpen] = useState(initialIsOpen);
-  const [messages, setMessages] = useState([
-    { id: 1, text: welcomeMessage, sender: "bot" },
-  ]);
+   const [internalMessages, setInternalMessages] = useState(() => {
+    return welcomeMessage ? [{ id: 1, text: welcomeMessage, sender: "bot" }] : [];
+  });
   const [inputValue, setInputValue] = useState("");
-  
-  // **FIX**: Internal state to manage the bot's typing status for default replies.
   const [isBotTyping, setIsBotTyping] = useState(false);
+
+  const isControlled = typeof controlledMessages !== "undefined";
+  const messages = isControlled ? controlledMessages : internalMessages;
+  const setMessages = isControlled ? () => {} : setInternalMessages;
 
   const inputRef = useRef(null);
   const messagesEndRef = useRef(null);
   const launcherRef = useRef(null);
   const windowRef = useRef(null);
+
+  const geminiModel = useMemo(() => {
+    if (!geminiApiKey) return null;
+    try {
+      const genAI = new GoogleGenerativeAI(geminiApiKey);
+      return genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    } catch (error) {
+      console.error("Failed to initialize Gemini:", error);
+      return null;
+    }
+  }, [geminiApiKey]);
 
   // --- Theming Engine ---
   const mergedTheme = useMemo(() => {
@@ -241,13 +294,13 @@ const ChatBot = ({
 
   // **FIX**: Sync internal typing state with the external `isTyping` prop.
   useEffect(() => {
-    setIsBotTyping(isTyping);
-  }, [isTyping]);
+    setIsBotTyping(parentIsTyping);
+  }, [parentIsTyping]);
 
   // Auto-scroll to the latest message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isBotTyping]); // **FIX**: Depend on the correct typing state.
+  }, [messages, isBotTyping, parentIsTyping]);
 
   // Focus management for accessibility
   useEffect(() => {
@@ -271,40 +324,53 @@ const ChatBot = ({
 
   // --- Handlers ---
 
-  const handleSend = useCallback(() => {
+ const handleSend = useCallback(async () => {
     const trimmedInput = inputValue.trim();
-    // **FIX**: Check against internal `isBotTyping` state
-    if (!trimmedInput || disabled || isBotTyping) return;
+    if (!trimmedInput || disabled || isBotTyping || parentIsTyping) return;
 
-    const newUserMessage = {
-      id: Date.now(),
-      text: trimmedInput,
-      sender: "user",
-    };
-    setMessages((prev) => [...prev, newUserMessage]);
+    const newUserMessage = { id: Date.now(), text: trimmedInput, sender: "user" };
+    const newMessages = [...messages, newUserMessage];
+
+    if (!isControlled) {
+      setMessages(prev => [...prev, newUserMessage]);
+    }
+    onSend(trimmedInput);
     setInputValue("");
 
-    // Call custom onSend if provided
-    onSend(trimmedInput);
-    
-    // **FIX**: Use the correct state setter. This was the main bug.
-    // Show typing indicator
-    setIsBotTyping(true);
+    if (geminiModel) {
+      setIsBotTyping(true);
+      try {
+        // **FIX**: Use the new helper function to format history
+        const chatHistory = formatHistoryForApi(newMessages);
 
-    // Simulate bot thinking and replying
-    setTimeout(() => {
-      const defaultBotResponse = {
-        id: Date.now() + 1,
-        text: `You said: "${trimmedInput}"`,
-        sender: "bot",
-      };
-      setMessages((prev) => [...prev, defaultBotResponse]);
-      
-      // **FIX**: Use the correct state setter.
-      setIsBotTyping(false);
-    }, 800); // 800ms delay for better UX
-  }, [inputValue, disabled, isBotTyping, onSend]); // **FIX**: Depend on the correct state.
+        // The last message is the new user input, which should not be in the history.
+        const historyForContext = chatHistory.slice(0, -1);
+        const lastUserMessage = chatHistory[chatHistory.length - 1]?.parts[0]?.text || '';
+        
+        const chat = geminiModel.startChat({ history: historyForContext });
+        const result = await chat.sendMessage(lastUserMessage);
 
+        const response = await result.response;
+        const text = response.text();
+        const botResponse = { id: Date.now() + 1, text, sender: "bot" };
+        setMessages(prev => [...prev, botResponse]);
+
+      } catch (error) {
+        console.error("Gemini API Error:", error);
+        const errorResponse = { id: Date.now() + 1, text: "Sorry, an error occurred. Please try again.", sender: "bot" };
+        setMessages(prev => [...prev, errorResponse]);
+      } finally {
+        setIsBotTyping(false);
+      }
+    } else if (!isControlled) {
+      setIsBotTyping(true);
+      setTimeout(() => {
+        const defaultBotResponse = { id: Date.now() + 1, text: `You said: "${trimmedInput}"`, sender: "bot" };
+        setMessages(prev => [...prev, defaultBotResponse]);
+        setIsBotTyping(false);
+      }, 800);
+    }
+  }, [inputValue, disabled, isBotTyping, parentIsTyping, onSend, geminiModel, isControlled, messages, setMessages]);
   const handleKeyPress = useCallback(
     (e) => {
       if (e.key === "Enter") {
@@ -328,8 +394,8 @@ const ChatBot = ({
     }
     return <div className="w-8 h-8 rounded-full text-gray-500">{avatar}</div>;
   };
-  
-  const totalTypingStatus = isTyping || isBotTyping;
+
+  const totalTypingStatus = isBotTyping || parentIsTyping;
 
   const placementClasses = {
     "bottom-right": "bottom-5 right-5",
@@ -365,20 +431,7 @@ const ChatBot = ({
               height: "var(--chatbot-launcher-size)",
             }}
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="w-2/3 h-2/3"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193l-3.72.15c-.81.033-1.534.626-1.744 1.416l-1.02 3.988c-.382 1.48-.M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
+            <FontAwesomeIcon icon={faCommentDots} />
           </motion.button>
         )}
       </AnimatePresence>
@@ -546,7 +599,7 @@ const ChatBot = ({
                     "--tw-ring-color": "var(--chatbot-input-focus-ring)",
                   }}
                 />
-               <button
+                <button
                   onClick={handleSend}
                   disabled={!inputValue.trim() || disabled || totalTypingStatus}
                   aria-label="Send Message"
@@ -568,4 +621,4 @@ const ChatBot = ({
   );
 };
 
-export default ChatBot; 
+export default ChatBot;

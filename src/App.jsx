@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { ChatBot } from './index';
 import './App.css';
 
+const GEMINI_API_KEY = "AIzaSyBi0O2XvJRpWngtjvv2JswmGfnhESCy_20";
+
+
 const GeniusIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full">
     <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 21v-1.5M12 5.25v13.5" />
@@ -47,11 +50,11 @@ function App() {
       </header>
 
       <main className="grid grid-cols-1 md:grid-cols-2 gap-16 items-start">
-        <div className="p-6 bg-white rounded-xl shadow-md border border-gray-200">
+        {/* <div className="p-6 bg-white rounded-xl shadow-md border border-gray-200">
           <h2 className="text-2xl font-semibold mb-2 text-blue-800">1. The "Plug & Play" User</h2>
           <p className="mb-4 text-gray-600">This developer wants a chatbot that just works. No props are passed, so the component uses its beautiful, built-in defaults.</p>
           <ChatBot />
-        </div>
+        </div> */}
 {/* 
         <div className="p-6 bg-white rounded-xl shadow-md border border-gray-200">
           <h2 className="text-2xl font-semibold mb-2 text-green-800">2. The "Minimalist" User</h2>
@@ -64,7 +67,7 @@ function App() {
           <p className="mb-4 text-gray-600">This developer needs the chatbot to match their corporate branding. They pass a comprehensive `theme` object.</p>
           <ChatBot botName="CorpBot" botAvatar="https://placehold.co/40x40/1e3a8a/ffffff?text=C" welcomeMessage="Welcome. How may I be of assistance?" placeholderText="Enter corporate inquiry..." theme={corporateTheme} />
         </div> */}
-{/* 
+
         <div className="p-6 bg-white rounded-xl shadow-md border border-gray-200">
           <h2 className="text-2xl font-semibold mb-2 text-purple-800">4. The "Power User"</h2>
           <p className="mb-4 text-gray-600">This developer is integrating a live API. They manage the conversation state and use `onSend`, `isTyping`, and the `messages` prop for full control.</p>
@@ -85,7 +88,28 @@ function App() {
               input: { focusRingColor: '#8b5cf6' }
             }}
           />
+        </div>
+
+        {/* <div className="p-6 bg-white rounded-xl shadow-md border border-gray-200">
+          <h2 className="text-2xl font-semibold mb-2 text-red-800">5. The "Gemini-Powered" Bot</h2>
+          <p className="mb-4 text-gray-600">This developer has provided a Gemini API key. The bot is now a real AI assistant that can answer questions.</p>
+          <ChatBot
+            botName="Gemini Bot"
+            botAvatar={<GeniusIcon />}
+            isOpen={true}
+            welcomeMessage="I am powered by Gemini. How can I help you today?"
+            geminiApiKey={GEMINI_API_KEY}
+            theme={{ 
+              window: { placement: 'bottom-right' },
+              messages: { userBackgroundColor: '#c026d3', botBackgroundColor: '#fdf4ff', botTextColor: '#701a75' },
+              header: { backgroundColor: '#c026d3' },
+              launcher: { backgroundColor: '#c026d3' },
+              input: { focusRingColor: '#c026d3' }
+            }}
+          />
         </div> */}
+
+        
       </main>
     </div>
   );
