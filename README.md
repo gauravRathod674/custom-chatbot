@@ -22,7 +22,7 @@ A highly customizable, performant, and intelligent React chatbot component. Drop
 To get started, install the package from NPM. You will also need to install its peer dependencies if you don't already have them in your project.
 
 ```bash
-npm install @gauravrathod674/super-customizable-chatbot
+npm install
 ```
 
 ```bash
