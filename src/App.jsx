@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { ChatBot } from "./index";
 import "./App.css";
 
-const GEMINI_API_KEY = "YOUR_API_KEY_HERE";
+const GEMINI_API_KEY = "AIzaSyBi0O2XvJRpWngtjvv2JswmGfnhESCy_20";
 
 const GeniusIcon = () => (
   <svg
@@ -122,7 +122,7 @@ function App() {
           />
         </div> */}
 
-        {/* <div className="p-6 bg-white rounded-xl shadow-md border border-gray-200">
+        <div className="p-6 bg-white rounded-xl shadow-md border border-gray-200">
           <h2 className="text-2xl font-semibold mb-2 text-red-800">5. The "Gemini-Powered" Bot</h2>
           <p className="mb-4 text-gray-600">This developer has provided a Gemini API key. The bot is now a real AI assistant that can answer questions.</p>
           <ChatBot
@@ -139,12 +139,12 @@ function App() {
               input: { focusRingColor: '#c026d3' }
             }}
           />
-        </div> */}
+        </div>
 
-        <div className="p-6 bg-white rounded-xl shadow-md border border-gray-200">
+        {/* <div className="p-6 bg-white rounded-xl shadow-md border border-gray-200">
           <h2 className="text-2xl font-semibold mb-2 text-red-800">
             {" "}
-            6. The "Main Feature" Bot
+          Chatbot
           </h2>
           <p className="mb-4 text-gray-600">
             This developer has provided a Gemini API key. The bot is now a real
@@ -173,7 +173,7 @@ function App() {
               input: { focusRingColor: "#06b6d4" },
             }}
           />
-        </div>
+        </div> */}
       </main>
     </div>
   );

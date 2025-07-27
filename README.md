@@ -25,6 +25,10 @@ To get started, install the package from NPM. You will also need to install its 
 npm install @gauravrathod674/super-customizable-chatbot
 ```
 
+```bash
+npm install @gauravrathod674/super-customizable-chatbot @fortawesome/react-fontawesome @fortawesome/free-solid-svg-icons @fortawesome/fontawesome-svg-core react-markdown
+```
+
 ## 🚀 Getting Started
 
 Using the chatbot is simple. Import the component and its stylesheet, then render it with your Google Gemini API key.
