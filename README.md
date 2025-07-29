@@ -187,9 +187,14 @@ function ChatPage() {
 }
 ```
 
+
 ## API Reference
 
+The component can be customized through two main avenues: direct `props` for behavior and a `theme` object for appearance.
+
 ### Component Props
+
+These props control the chatbot's functionality, identity, and AI integration.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -214,18 +219,69 @@ function ChatPage() {
 | `messages` | `Array<{id, text, sender}>` | `undefined` | **Advanced:** A controlled array of message objects. |
 | `isTyping` | `boolean` | `false` | **Advanced:** Manually controls the bot's typing indicator. |
 
+---
+
 ### Theming Options (`theme` object)
+
+Pass a `theme` object to customize the chatbot's appearance. Any property you don't provide will fall back to its default value.
+
+#### Launcher Button
 
 | Path | Type | Default | Description |
 | --- | --- | --- | --- |
-| `launcher.backgroundColor` | `string` | `#4f46e5` | Background color of the launcher button. |
-| `launcher.iconColor` | `string` | `#ffffff` | Color of the icon in the launcher. |
-| `messages.animation` | `string` | `'fade-in'` | `'fade-in'`, `'typing'`, `'slide-up'`, `'zoom-in'`, `'flip'`, or `'none'`. |
-| `messages.userBackgroundColor` | `string` | `#4f46e5` | Background color for user message bubbles. |
-| `messages.botBackgroundColor` | `string` | `#f3f4f6` | Background color for bot message bubbles. |
-| `window.placement` | `string` | `'bottom-right'`| `'bottom-right'`, `'bottom-left'`, or `'center'`. |
-| `window.backdrop` | `boolean` | `false` | Show blurred backdrop (only for `center` placement). |
-| *...and many more!* | | | |
+| `launcher.backgroundColor` | `string` | `'#4f46e5'` | Background color of the launcher button. |
+| `launcher.iconColor` | `string` | `'#ffffff'` | Color of the icon inside the launcher. |
+| `launcher.size` | `string` | `'3.5rem'` | The width and height of the launcher button. |
+
+#### Chat Window
+
+| Path | Type | Default | Description |
+| --- | --- | --- | --- |
+| `window.placement` | `string` | `'bottom-right'` | Position on screen. Options: `'bottom-right'`, `'bottom-left'`, `'center'`. |
+| `window.width` | `string` | `'22rem'` | Width of the chat window. (Defaults to `'80vw'` if placement is `'center'`). |
+| `window.height` | `string` | `'30rem'` | Height of the chat window. (Defaults to `'80vh'` if placement is `'center'`). |
+| `window.backgroundColor` | `string` | `'#ffffff'` | Background color of the main chat window. |
+| `window.borderColor` | `string` | `'#e5e7eb'` | Border color of the main chat window. |
+| `window.borderRadius` | `string` | `'0.75rem'` | Border radius of the main chat window. |
+| `window.backdrop` | `boolean` | `false` | Show blurred backdrop (only for `'center'` placement). |
+| `window.backdropColor` | `string` | `'rgba(0,0,0,0.4)'` | Color of the backdrop overlay. |
+| `window.backdropBlur` | `string` | `'4px'` | CSS blur value for the backdrop. |
+| `window.scrollbarThumbColor`| `string` | `'#a1a1aa'` | Color of the message list's scrollbar thumb. |
+| `window.scrollbarTrackColor`| `string` | `'#f1f5f9'` | Color of the message list's scrollbar track. |
+
+#### Header
+
+| Path | Type | Default | Description |
+| --- | --- | --- | --- |
+| `header.backgroundColor` | `string` | `'#4f46e5'` | Background color of the header. |
+| `header.textColor` | `string` | `'#ffffff'` | Text color for the bot's name in the header. |
+| `header.fontFamily` | `string` | `'inherit'` | Font family for the header text. |
+| `header.fontWeight` | `string` | `'600'` | Font weight for the header text. |
+
+#### Messages
+
+| Path | Type | Default | Description |
+| --- | --- | --- | --- |
+| `messages.userBackgroundColor` | `string` | `'#4f46e5'` | Background color for user message bubbles. |
+| `messages.userTextColor` | `string` | `'#ffffff'` | Text color for user messages. |
+| `messages.botBackgroundColor`| `string` | `'#f3f4f6'` | Background color for bot message bubbles. |
+| `messages.botTextColor` | `string` | `'#1f2937'` | Text color for bot messages. |
+| `messages.fontFamily` | `string` | `'inherit'` | Font family for all message text. |
+| `messages.fontSize` | `string` | `'0.9rem'` | Font size for all message text. |
+| `messages.showAvatars` | `boolean` | `true` | Whether to display avatars next to messages. |
+| `messages.bubbleShape` | `string` | `'rounded'` | Shape of bubbles. Options: `'rounded'`, `'square'`. |
+| `messages.bubblePointer` | `boolean` | `true` | Show a small pointer on the message bubbles. |
+| `messages.animation` | `string` | `'fade-in'` | Bot response animation. Options: `'fade-in'`, `'typing'`, `'slide-up'`, `'zoom-in'`, `'flip'`, `'none'`. |
+
+#### Input Area
+
+| Path | Type | Default | Description |
+| --- | --- | --- | --- |
+| `input.backgroundColor` | `string` | `'#ffffff'` | Background color for the input footer area. |
+| `input.textColor` | `string` | `'#1f2937'` | Text color for the user's typed input. |
+| `input.placeholderTextColor`| `string` | `'#9ca3af'` | Color of the placeholder text. |
+| `input.borderColor` | `string` | `'#e5e7eb'` | Border color for the text input field. |
+| `input.focusRingColor` | `string` | `'#4f46e5'` | Color of the focus ring when the input is selected. |
 
 ## License
 
