@@ -82,7 +82,7 @@ function App() {
       </header>
 
       <main className="grid grid-cols-1 md:grid-cols-2 gap-16 items-start">
-        <div className="p-6 bg-white rounded-xl shadow-md border border-gray-200">
+        {/* <div className="p-6 bg-white rounded-xl shadow-md border border-gray-200">
           <h2 className="text-2xl font-semibold mb-2 text-blue-800">1. The "Plug & Play" User</h2>
           <p className="mb-4 text-gray-600">This developer wants a chatbot that just works. No props are passed, so the component uses its beautiful, built-in defaults.</p>
           <ChatBot  theme={{
@@ -103,7 +103,7 @@ function App() {
               messages: { userBackgroundColor: "#06b6d4", animation: "typing" },
               input: { focusRingColor: "#06b6d4" },
             }}/>
-        </div>
+        </div> */}
         {/* 
         <div className="p-6 bg-white rounded-xl shadow-md border border-gray-200">
           <h2 className="text-2xl font-semibold mb-2 text-green-800">2. The "Minimalist" User</h2>
@@ -158,7 +158,7 @@ function App() {
           />
         </div> */}
 
-        {/* <div className="p-6 bg-white rounded-xl shadow-md border border-gray-200">
+        <div className="p-6 bg-white rounded-xl shadow-md border border-gray-200">
           <h2 className="text-2xl font-semibold mb-2 text-red-800"> Chatbot</h2>
           <p className="mb-4 text-gray-600">
             This developer has provided a Gemini API key. The bot is now a real
@@ -188,7 +188,7 @@ function App() {
               input: { focusRingColor: "#06b6d4" },
             }}
           />
-        </div> */}
+        </div>
       </main>
     </div>
   );

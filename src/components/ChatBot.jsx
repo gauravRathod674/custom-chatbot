@@ -9,6 +9,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCommentDots } from "@fortawesome/free-solid-svg-icons";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
+import Groq from "groq-sdk";
 import ReactMarkdown from "react-markdown";
 
 // JSDoc for type-hinting in JS environments
@@ -152,7 +155,6 @@ const DynamicTypingEffect = ({ fullText, onComplete }) => {
   );
 };
 
-
 const AnimatedResponseMessage = ({ text, animationType }) => {
   const markdownClasses =
     "prose prose-sm max-w-none text-inherit prose-p:my-0 prose-headings:my-2 prose-ul:my-1 prose-li:my-0.5";
@@ -167,7 +169,9 @@ const AnimatedResponseMessage = ({ text, animationType }) => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1.5, ease: "easeOut" }}
         >
-          <div className={markdownClasses}><ReactMarkdown>{text}</ReactMarkdown></div>
+          <div className={markdownClasses}>
+            <ReactMarkdown>{text}</ReactMarkdown>
+          </div>
         </motion.div>
       );
     case "slide-up":
@@ -177,7 +181,9 @@ const AnimatedResponseMessage = ({ text, animationType }) => {
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.7, ease: "anticipate" }}
         >
-          <div className={markdownClasses}><ReactMarkdown>{text}</ReactMarkdown></div>
+          <div className={markdownClasses}>
+            <ReactMarkdown>{text}</ReactMarkdown>
+          </div>
         </motion.div>
       );
     case "zoom-in":
@@ -187,7 +193,9 @@ const AnimatedResponseMessage = ({ text, animationType }) => {
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 1, ease: "backOut" }}
         >
-          <div className={markdownClasses}><ReactMarkdown>{text}</ReactMarkdown></div>
+          <div className={markdownClasses}>
+            <ReactMarkdown>{text}</ReactMarkdown>
+          </div>
         </motion.div>
       );
     case "flip":
@@ -198,13 +206,17 @@ const AnimatedResponseMessage = ({ text, animationType }) => {
           transition={{ duration: 1, ease: "easeOut" }}
           style={{ transformPerspective: 400 }}
         >
-          <div className={markdownClasses}><ReactMarkdown>{text}</ReactMarkdown></div>
+          <div className={markdownClasses}>
+            <ReactMarkdown>{text}</ReactMarkdown>
+          </div>
         </motion.div>
       );
     default:
       // 'none' or unknown: just render statically
       return (
-        <div className={markdownClasses}><ReactMarkdown>{text}</ReactMarkdown></div>
+        <div className={markdownClasses}>
+          <ReactMarkdown>{text}</ReactMarkdown>
+        </div>
       );
   }
 };
@@ -216,16 +228,24 @@ const formatHistoryForApi = (messages) => {
   }
 
   // Merge consecutive messages from the same sender
-  const mergedMessages = messages.reduce((acc, current) => {
-    const lastMessage = acc[acc.length - 1];
+const mergedMessages = messages.reduce((acc, current) => {
+    const lastMessage = acc.length > 0 ? acc[acc.length - 1] : null;
+
     if (lastMessage && lastMessage.sender === current.sender) {
-      lastMessage.text += `\n${current.text}`;
+      // Create a new object with the updated text
+      const updatedLastMessage = { 
+        ...lastMessage, 
+        text: `${lastMessage.text}\n${current.text}` 
+      };
+      // Replace the last item with the new, updated object
+      acc[acc.length - 1] = updatedLastMessage;
     } else {
+      // Push a shallow copy of the current message
       acc.push({ ...current });
     }
     return acc;
   }, []);
-
+  
   // Map to the Gemini API format
   let apiHistory = mergedMessages.map((msg) => ({
     role: msg.sender === "bot" ? "model" : "user",
@@ -254,6 +274,7 @@ const formatHistoryForApi = (messages) => {
  * @param {React.ReactNode} [props.userAvatar=<DefaultUserIcon />] - Avatar for the user.
  * @param {string} [props.welcomeMessage='Hello! How can I help?'] - The initial message from the bot.
  * @param {string} [props.placeholderText='Type a message...'] - Placeholder for the text input.
+ * @param {string} [props.customInstruction] - A system prompt to define the bot's persona or behavior.
  * @param {boolean} [props.isOpen=false] - Controls if the chat window is open initially.
  * @param {boolean} [props.disabled=false] - Disables the input field.
  * @param {boolean} [props.isTyping=false] - Shows a typing indicator controlled by the parent.
@@ -266,14 +287,21 @@ const ChatBot = ({
   userAvatar = <DefaultUserIcon />,
   welcomeMessage = "Hello! How can I help?",
   placeholderText = "Type a message...",
+  customInstruction = "", 
   isOpen: initialIsOpen = false,
   disabled = false,
   isTyping: parentIsTyping = false,
   onSend = () => {},
   theme = {},
   geminiApiKey,
-  geminiModelName = "gemini-2.5-flash",
-  messages: controlledMessages, // This is for the "Power User" case
+  geminiModelName = "gemini-1.5-flash",
+  openaiApiKey,
+  openaiModelName = "gpt-4o-mini",
+  anthropicApiKey,
+  anthropicModelName = "claude-3-haiku-20240307",
+  grokApiKey,
+  grokModelName = "llama3-8b-8192",
+  messages: controlledMessages,
 }) => {
   const [chatbotId] = useState(
     () => `chatbot-instance-${Math.random().toString(36).substring(2, 9)}`
@@ -296,18 +324,40 @@ const ChatBot = ({
   const launcherRef = useRef(null);
   const windowRef = useRef(null);
 
+  // Gemini client
   const geminiModel = useMemo(() => {
     if (!geminiApiKey) return null;
     try {
       const genAI = new GoogleGenerativeAI(geminiApiKey);
+      // Embed the custom instruction directly into the model's configuration
       return genAI.getGenerativeModel({
-        model: geminiModelName || "gemini-2.5-flash",
+        model: geminiModelName,
+        systemInstruction: customInstruction,
       });
     } catch (error) {
       console.error("Failed to initialize Gemini:", error);
       return null;
     }
-  }, [geminiApiKey, geminiModelName]);
+  }, [geminiApiKey, geminiModelName, customInstruction]); // Re-initialize if instruction changes
+
+  // OpenAI client
+  const openai = useMemo(() => {
+    if (!openaiApiKey) return null;
+    return new OpenAI({ apiKey: openaiApiKey, dangerouslyAllowBrowser: true });
+  }, [openaiApiKey]);
+
+  // Anthropic (Claude) client
+  const anthropic = useMemo(() => {
+    if (!anthropicApiKey) return null;
+    return new Anthropic({ apiKey: anthropicApiKey, dangerouslyAllowBrowser: true });
+  }, [anthropicApiKey]);
+
+  // Groq client
+  const grok = useMemo(() => {
+    if (!grokApiKey) return null;
+    return new Groq({ apiKey: grokApiKey, dangerouslyAllowBrowser: true });
+  }, [grokApiKey]);
+
 
   // --- Theming Engine ---
   const mergedTheme = useMemo(() => {
@@ -450,17 +500,14 @@ const ChatBot = ({
     mergedTheme.window.scrollbarTrackColor,
   ]);
 
-  // **FIX**: Sync internal typing state with the external `isTyping` prop.
   useEffect(() => {
     setIsBotTyping(parentIsTyping);
   }, [parentIsTyping]);
 
-  // Auto-scroll to the latest message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isBotTyping, parentIsTyping]);
 
-  // Focus management for accessibility
   useEffect(() => {
     if (isOpen) {
       inputRef.current?.focus();
@@ -469,7 +516,6 @@ const ChatBot = ({
     }
   }, [isOpen]);
 
-  // Handle 'Escape' key to close chat
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.key === "Escape" && isOpen) {
@@ -504,7 +550,6 @@ const ChatBot = ({
       try {
         const chatHistory = formatHistoryForApi(newMessages);
 
-        // The last message is the new user input, which should not be in the history.
         const historyForContext = chatHistory.slice(0, -1);
         const lastUserMessage =
           chatHistory[chatHistory.length - 1]?.parts[0]?.text || "";
@@ -514,7 +559,6 @@ const ChatBot = ({
 
         const response = await result.response;
         const text = (await response.text()) || "(no response)";
-        console.log("BOT RESPONSE TEXT =>", text);
 
         const botResponse = { id: Date.now() + 1, text, sender: "bot" };
         setMessages((prev) => [...prev, botResponse]);
@@ -529,12 +573,129 @@ const ChatBot = ({
       } finally {
         setIsBotTyping(false);
       }
+    } else if (openai) {
+      setIsBotTyping(true);
+      try {
+        const systemMessage = customInstruction
+          ? [{ role: "system", content: customInstruction }]
+          : [];
+
+        const historyForContext = messages.map((msg) => ({
+          role: msg.sender === "bot" ? "assistant" : "user",
+          content: msg.text,
+        }));
+
+        const resp = await openai.chat.completions.create({
+          model: openaiModelName,
+          messages: [
+            ...systemMessage,
+            ...historyForContext,
+            { role: "user", content: trimmedInput },
+          ],
+        });
+        const text =
+          resp.choices?.[0]?.message?.content?.trim() || "(no response)";
+
+        setMessages((prev) => [
+          ...prev,
+          { id: Date.now() + 1, text, sender: "bot" },
+        ]);
+      } catch (err) {
+        console.error("OpenAI Error:", err);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now() + 1,
+            text: "Sorry, something went wrong with OpenAI.",
+            sender: "bot",
+          },
+        ]);
+      } finally {
+        setIsBotTyping(false);
+      }
+    } else if (anthropic) {
+      setIsBotTyping(true);
+      try {
+        const anthropicHistory = messages.map((msg) => ({
+          role: msg.sender === "bot" ? "assistant" : "user",
+          content: msg.text,
+        }));
+
+        const msg = await anthropic.messages.create({
+          model: anthropicModelName,
+          system: customInstruction, // Pass instruction to the dedicated 'system' parameter
+          messages: [
+            ...anthropicHistory,
+            { role: "user", content: trimmedInput },
+          ],
+          max_tokens: 1024,
+        });
+
+        const text = msg.content[0]?.text?.trim() || "(no response)";
+
+        setMessages((prev) => [
+          ...prev,
+          { id: Date.now() + 1, text, sender: "bot" },
+        ]);
+      } catch (err) {
+        console.error("Anthropic API Error:", err);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now() + 1,
+            text: "Sorry, an error occurred with Claude.",
+            sender: "bot",
+          },
+        ]);
+      } finally {
+        setIsBotTyping(false);
+      }
+    } else if (grok) {
+      setIsBotTyping(true);
+      try {
+        const systemMessage = customInstruction
+          ? [{ role: "system", content: customInstruction }]
+          : [];
+
+        const grokHistory = messages.map((msg) => ({
+          role: msg.sender === 'bot' ? 'assistant' : 'user',
+          content: msg.text,
+        }));
+
+        const chatCompletion = await grok.chat.completions.create({
+          messages: [
+            ...systemMessage,
+            ...grokHistory,
+            { role: "user", content: trimmedInput },
+          ],
+          model: grokModelName,
+        });
+
+        const text = chatCompletion.choices[0]?.message?.content?.trim() || "(no response)";
+
+        setMessages((prev) => [
+          ...prev,
+          { id: Date.now() + 1, text, sender: "bot" },
+        ]);
+      } catch (err) {
+        console.error("Groq API Error:", err);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now() + 1,
+            text: "Sorry, an error occurred with Groq.",
+            sender: "bot",
+          },
+        ]);
+      } finally {
+        setIsBotTyping(false);
+      }
     } else if (!isControlled) {
       setIsBotTyping(true);
       setTimeout(() => {
         const defaultBotResponse = {
           id: Date.now() + 1,
-          text: `You said: "${trimmedInput}"`, // ✅ Fixed template
+          text: `You said: "${trimmedInput}"`,
           sender: "bot",
         };
         setMessages((prev) => [...prev, defaultBotResponse]);
@@ -548,10 +709,18 @@ const ChatBot = ({
     parentIsTyping,
     onSend,
     geminiModel,
+    openai,
+    anthropic,
+    grok,
     isControlled,
     messages,
     setMessages,
+    openaiModelName,
+    anthropicModelName,
+    grokModelName,
+    customInstruction, // Add to dependency array
   ]);
+  
   const handleKeyPress = useCallback(
     (e) => {
       if (e.key === "Enter") {
@@ -726,8 +895,6 @@ const ChatBot = ({
                         )}
                       </div>
                     )}
-                    {/* ✨✨ KEY CHANGE HERE ✨✨ */}
-                    {/* The message bubble is now a motion.div with the layout prop */}
                     <motion.div
                       layout="position"
                       transition={{ duration: 0.2, ease: "easeOut" }}
@@ -771,7 +938,6 @@ const ChatBot = ({
                   </motion.div>
                 ))}
               </AnimatePresence>
-              {/* **FIX**: Check the combined typing status */}
               {totalTypingStatus && (
                 <div
                   key="typing-indicator"
@@ -813,7 +979,6 @@ const ChatBot = ({
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder={placeholderText}
-                  // **FIX**: Disable based on the combined typing status
                   disabled={disabled || totalTypingStatus}
                   aria-label="Chat input"
                   className="flex-1 w-full px-4 py-2 bg-transparent rounded-full border focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
