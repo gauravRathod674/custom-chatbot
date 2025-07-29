@@ -3,103 +3,184 @@
 [![npm](https://img.shields.io/npm/v/@gauravrathod674/super-customizable-chatbot.svg)](https://www.npmjs.com/package/@gauravrathod674/super-customizable-chatbot)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A highly customizable, performant, and intelligent React chatbot component. Drop it into any project to add a powerful conversational AI interface, powered by Google Gemini.
+A highly customizable, performant, and intelligent React chatbot component. Drop it into any project to add a powerful conversational AI interface, powered by **Google Gemini, OpenAI, Anthropic (Claude), and Groq**.
 
 ![ChatBot Demo](https://i.imgur.com/g0QkY7G.png)
 
 ## ✨ Features
 
--   🤖 **AI-Powered**: Integrates directly with Google Gemini for intelligent, human-like conversations.
--   🎨 **Deeply Customizable**: Use a comprehensive theme object to control every color, font, border, size, and even the scrollbar.
--   🧩 **Flexible Placement**: Display as a classic corner widget or as a large, focused modal in the center of the screen.
--   💅 **Markdown Rendering**: Automatically renders formatted lists, bold/italic text, headers, and more from the AI's response.
--   🚀 **Lightweight & Performant**: Built with Vite and optimized for production.
+-   🤖 **Multi-API Support**: Integrates directly with Google Gemini, OpenAI, Anthropic (Claude), and Groq.
+-   🧠 **Custom Instructions**: Provide a system prompt to define the bot's persona, role, and rules.
+-   🚀 **Model Selection**: Choose the exact AI model you want to use from any supported provider (e.g., `gemini-1.5-flash`, `gpt-4o-mini`, `claude-3-haiku`, `llama3-8b-8192`).
+-   🎨 **Deeply Customizable**: Use a comprehensive `theme` object to control every color, font, border, and size.
+-   🎬 **Typing Animation**: Engage users with a smooth, character-by-character typing animation for bot responses.
+-   🧩 **Flexible Placement**: Display as a classic corner widget or a large, focused modal.
+-   💅 **Markdown Rendering**: Automatically renders lists, bold/italic text, headers, and more.
+-   💪 **Controlled & Uncontrolled Modes**: Use it as a simple plug-and-play component or take full control over its state.
 -   ♿ **Accessible**: Designed with accessibility in mind, including focus management and ARIA attributes.
--   💪 **Controlled & Uncontrolled Modes**: Use it as a simple plug-and-play component or take full control over its state and messages.
 
 ## 📦 Installation
 
-To get started, install the package from NPM. You will also need to install its peer dependencies if you don't already have them in your project.
+Install the package and its core peer dependencies from NPM.
 
 ```bash
-npm install
+npm install @gauravrathod674/super-customizable-chatbot @fortawesome/react-fontawesome @fortawesome/free-solid-svg-icons @fortawesome/fontawesome-svg-core framer-motion react-markdown
 ```
+
+### AI Provider SDKs
+
+You also need to install the SDK for the specific AI provider you want to use. You only need to install the ones you plan to use.
 
 ```bash
-npm install @gauravrathod674/super-customizable-chatbot @fortawesome/react-fontawesome @fortawesome/free-solid-svg-icons @fortawesome/fontawesome-svg-core react-markdown
+# For Google Gemini
+npm install @google/generative-ai
+
+# For OpenAI
+npm install openai
+
+# For Anthropic (Claude)
+npm install @anthropic-ai/sdk
+
+# For Groq
+npm install groq-sdk
 ```
 
-## 🚀 Getting Started
+## 🚀 Usage
 
-Using the chatbot is simple. Import the component and its stylesheet, then render it with your Google Gemini API key.
+Import the component and its stylesheet, then render it with the appropriate API key.
+
+### Example: Google Gemini
 
 ```jsx
 import React from 'react';
-import { ChatBot } from '@gauravrathod674/super-customizable-chatbot';
-
-// Don't forget to import the styles!
+import ChatBot from '@gauravrathod674/super-customizable-chatbot';
 import '@gauravrathod674/super-customizable-chatbot/dist/style.css';
 
 function App() {
-  // Get your API key from Google AI Studio: [https://aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
-  const GEMINI_API_KEY = "YOUR_API_KEY_HERE";
+  const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY";
 
   return (
-    <div>
-      <h1>My Awesome App</h1>
-      <ChatBot geminiApiKey={GEMINI_API_KEY} />
-    </div>
+    <ChatBot
+      botName="Gemini Bot"
+      geminiApiKey={GEMINI_API_KEY}
+      geminiModelName="gemini-1.5-flash"
+      welcomeMessage="I am powered by Gemini. How can I help?"
+    />
   );
 }
+```
 
-export default App;
+### Example: OpenAI
+
+```jsx
+import React from 'react';
+import ChatBot from '@gauravrathod674/super-customizable-chatbot';
+import '@gauravrathod674/super-customizable-chatbot/dist/style.css';
+
+function App() {
+  const OPENAI_API_KEY = "YOUR_OPENAI_API_KEY";
+
+  return (
+    <ChatBot
+      botName="OpenAI Bot"
+      openaiApiKey={OPENAI_API_KEY}
+      openaiModelName="gpt-4o-mini"
+      welcomeMessage="I am powered by OpenAI. How can I help?"
+    />
+  );
+}
+```
+
+### Example: Anthropic (Claude)
+
+```jsx
+import React from 'react';
+import ChatBot from '@gauravrathod674/super-customizable-chatbot';
+import '@gauravrathod674/super-customizable-chatbot/dist/style.css';
+
+function App() {
+  const ANTHROPIC_API_KEY = "YOUR_ANTHROPIC_API_KEY";
+
+  return (
+    <ChatBot
+      botName="Claude Bot"
+      anthropicApiKey={ANTHROPIC_API_KEY}
+      anthropicModelName="claude-3-haiku-20240307"
+      welcomeMessage="I am powered by Claude. How can I help?"
+    />
+  );
+}
+```
+
+### Example: Groq
+
+```jsx
+import React from 'react';
+import ChatBot from '@gauravrathod674/super-customizable-chatbot';
+import '@gauravrathod674/super-customizable-chatbot/dist/style.css';
+
+function App() {
+  const GROQ_API_KEY = "YOUR_GROQ_API_KEY";
+
+  return (
+    <ChatBot
+      botName="Groq Bot"
+      grokApiKey={GROQ_API_KEY}
+      grokModelName="llama3-8b-8192"
+      welcomeMessage="I am powered by Groq. I am very fast. How can I help?"
+    />
+  );
+}
+```
+
+## 🧠 Custom Instructions (System Prompts)
+
+Define a persona or set of rules for the AI using the `customInstruction` prop. The chatbot will adhere to this instruction throughout the conversation.
+
+```jsx
+<ChatBot
+  botName="Pirate Bot"
+  openaiApiKey="YOUR_OPENAI_API_KEY"
+  customInstruction="You are a helpful assistant who speaks like a pirate. Keep your answers brief and witty."
+  welcomeMessage="Ahoy there, matey! What be yer question?"
+/>
 ```
 
 ## 🎨 Theming & Customization
 
 The component's biggest strength is its customizability. You can override any default style by passing a `theme` object.
 
-### Example: Centered Modal with a Custom Theme
+### Example: Typing Animation & Custom Theme
 
-This example creates a large, centered chatbot with a blurred backdrop and a unique color scheme.
+This example creates a large, centered chatbot with a blurred backdrop, a unique color scheme, and the new typing animation.
 
 ```jsx
 import React from 'react';
-import { ChatBot } from '@gauravrathod674/super-customizable-chatbot';
+import ChatBot from '@gauravrathod674/super-customizable-chatbot';
 import '@gauravrathod674/super-customizable-chatbot/dist/style.css';
 
 function ChatPage() {
-  const GEMINI_API_KEY = "YOUR_API_KEY_HERE";
-
   const corporateTheme = {
-    header: {
-      backgroundColor: '#0e7490', // A nice cyan
-      textColor: '#ffffff',
-    },
+    header: { backgroundColor: '#1e3a8a' },
     messages: {
-      userBackgroundColor: '#06b6d4',
-      botBackgroundColor: '#f0f9ff',
-      botTextColor: '#083344',
+      userBackgroundColor: '#2563eb',
+      botBackgroundColor: '#eef2ff',
+      botTextColor: '#1e3a8a',
+      animation: 'typing', // <-- Enable the typing animation
     },
     window: {
       placement: 'center',
-      backdrop: true, // Enable the blur effect
+      backdrop: true,
       backdropBlur: '3px',
-      scrollbarThumbColor: '#0891b2',
-      scrollbarTrackColor: '#f0f9ff',
     },
-    input: {
-      focusRingColor: '#06b6d4',
-    },
-    launcher: {
-      backgroundColor: '#0e7490',
-    },
+    input: { focusRingColor: '#2563eb' },
+    launcher: { backgroundColor: '#1e3a8a' },
   };
 
   return (
     <ChatBot
-      botName="Central Intelligence"
-      geminiApiKey={GEMINI_API_KEY}
+      botName="CorpBot"
+      openaiApiKey="YOUR_OPENAI_API_KEY"
       theme={corporateTheme}
     />
   );
@@ -110,47 +191,41 @@ function ChatPage() {
 
 ### Component Props
 
-| Prop               | Type                                    | Default                               | Description                                                                                             |
-| ------------------ | --------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `geminiApiKey`     | `string`                                | `undefined`                           | **Required.** Your Google Gemini API key. If not provided, the bot will simply echo user messages.       |
-| `botName`          | `string`                                | `'ChatBot'`                           | The name displayed in the header.                                                                       |
-| `welcomeMessage`   | `string`                                | `'Hello! How can I help?'`            | The initial message displayed by the bot when it opens.                                                 |
-| `placeholderText`  | `string`                                | `'Type a message...'`                 | The placeholder text in the input field.                                                                |
-| `botAvatar`        | `React.ReactNode`                       | `<DefaultBotIcon />`                  | An icon or image URL for the bot's avatar.                                                              |
-| `userAvatar`       | `React.ReactNode`                       | `<DefaultUserIcon />`                 | An icon or image URL for the user's avatar.                                                             |
-| `isOpen`           | `boolean`                               | `false`                               | Controls whether the chat window is open or closed initially.                                           |
-| `disabled`         | `boolean`                               | `false`                               | Disables the input field and send button.                                                               |
-| `onSend`           | `(message: string) => void`             | `() => {}`                            | Callback function triggered when a user sends a message.                                                |
-| `theme`            | `object`                                | `{}`                                  | A theme object to customize the UI. See the Theming Options table below.                                |
-| `messages`         | `Array<{id, text, sender}>`             | `undefined`                           | **For advanced use.** A controlled array of message objects.                                            |
-| `isTyping`         | `boolean`                               | `false`                               | **For advanced use.** Manually controls the typing indicator for the bot.                               |
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `geminiApiKey` | `string` | `undefined` | Your Google Gemini API key. |
+| `openaiApiKey` | `string` | `undefined` | Your OpenAI API key. |
+| `anthropicApiKey`| `string` | `undefined` | Your Anthropic (Claude) API key. |
+| `grokApiKey` | `string` | `undefined` | Your Groq API key. |
+| `geminiModelName`| `string` | `'gemini-1.5-flash'` | The Gemini model to use. |
+| `openaiModelName`| `string` | `'gpt-4o-mini'` | The OpenAI model to use. |
+| `anthropicModelName`| `string` | `'claude-3-haiku-20240307'` | The Anthropic model to use. |
+| `grokModelName` | `string` | `'llama3-8b-8192'` | The Groq model to use. |
+| `customInstruction`| `string` | `''` | A system prompt to define the bot's persona or behavior. |
+| `botName` | `string` | `'ChatBot'` | The name displayed in the header. |
+| `welcomeMessage` | `string` | `'Hello! How can I help?'` | The initial message displayed by the bot. |
+| `placeholderText`| `string` | `'Type a message...'` | The placeholder text in the input field. |
+| `botAvatar` | `React.ReactNode` | `<DefaultBotIcon />` | An icon or image URL for the bot's avatar. |
+| `userAvatar` | `React.ReactNode` | `<DefaultUserIcon />` | An icon or image URL for the user's avatar. |
+| `isOpen` | `boolean` | `false` | Controls whether the chat window is open initially. |
+| `disabled` | `boolean` | `false` | Disables the input field and send button. |
+| `onSend` | `(message: string) => void` | `() => {}` | Callback when a user sends a message. |
+| `theme` | `object` | `{}` | A theme object to customize the UI. See table below. |
+| `messages` | `Array<{id, text, sender}>` | `undefined` | **Advanced:** A controlled array of message objects. |
+| `isTyping` | `boolean` | `false` | **Advanced:** Manually controls the bot's typing indicator. |
 
 ### Theming Options (`theme` object)
 
-You can customize the following properties within the `theme` object.
-
-| Path                                  | Type      | Default        | Description                                       |
-| ------------------------------------- | --------- | -------------- | ------------------------------------------------- |
-| `launcher.backgroundColor`            | `string`  | `#4f46e5`      | Background color of the launcher button.          |
-| `launcher.iconColor`                  | `string`  | `#ffffff`      | Color of the icon in the launcher.                |
-| `launcher.size`                       | `string`  | `'3.5rem'`     | Size (width & height) of the launcher button.     |
-| `header.backgroundColor`              | `string`  | `#4f46e5`      | Background color of the chat window header.       |
-| `header.textColor`                    | `string`  | `#ffffff`      | Text color in the header.                         |
-| `messages.userBackgroundColor`        | `string`  | `#4f46e5`      | Background color for user message bubbles.        |
-| `messages.userTextColor`              | `string`  | `#ffffff`      | Text color for user messages.                     |
-| `messages.botBackgroundColor`         | `string`  | `#f3f4f6`      | Background color for bot message bubbles.         |
-| `messages.botTextColor`               | `string`  | `#1f2937`      | Text color for bot messages.                      |
-| `messages.bubbleShape`                | `string`  | `'rounded'`    | Shape of message bubbles (`'rounded'` or `'square'`). |
-| `messages.showAvatars`                | `boolean` | `true`         | Whether to display avatars next to messages.      |
-| `window.placement`                    | `string`  | `'bottom-right'` | `'bottom-right'`, `'bottom-left'`, or `'center'`. |
-| `window.width`                        | `string`  | `'22rem'`      | Width of the chat window.                         |
-| `window.height`                       | `string`  | `'30rem'`      | Height of the chat window.                        |
-| `window.backdrop`                     | `boolean` | `false`        | Show blurred backdrop (only for `center` placement). |
-| `window.backdropBlur`                 | `string`  | `'4px'`        | CSS blur value for the backdrop.                  |
-| `window.backdropColor`                | `string`  | `rgba(0,0,0,0.4)` | Color of the backdrop overlay.                  |
-| `window.scrollbarThumbColor`          | `string`  | `#a1a1aa`      | Color of the message list's scrollbar thumb.      |
-| `window.scrollbarTrackColor`          | `string`  | `#f1f5f9`      | Color of the message list's scrollbar track.      |
-| `input.focusRingColor`                | `string`  | `#4f46e5`      | Color of the focus ring on the input field.       |
+| Path | Type | Default | Description |
+| --- | --- | --- | --- |
+| `launcher.backgroundColor` | `string` | `#4f46e5` | Background color of the launcher button. |
+| `launcher.iconColor` | `string` | `#ffffff` | Color of the icon in the launcher. |
+| `messages.animation` | `string` | `'fade-in'` | `'fade-in'`, `'typing'`, `'slide-up'`, `'zoom-in'`, `'flip'`, or `'none'`. |
+| `messages.userBackgroundColor` | `string` | `#4f46e5` | Background color for user message bubbles. |
+| `messages.botBackgroundColor` | `string` | `#f3f4f6` | Background color for bot message bubbles. |
+| `window.placement` | `string` | `'bottom-right'`| `'bottom-right'`, `'bottom-left'`, or `'center'`. |
+| `window.backdrop` | `boolean` | `false` | Show blurred backdrop (only for `center` placement). |
+| *...and many more!* | | | |
 
 ## License
 
