@@ -33,6 +33,7 @@ import ReactMarkdown from "react-markdown";
  * @property {boolean} messages.showAvatars - Whether to show avatars next to messages.
  * @property {string} messages.bubbleShape - Shape of the message bubbles ('rounded', 'square').
  * @property {boolean} messages.bubblePointer - Whether to show a pointer on the message bubble.
+ * @property {('fade-in' | 'typing' | 'none')} [messages.animation='fade-in'] - Animation for new bot messages.
  * @property {Object} input - Input area styles.
  * @property {string} input.backgroundColor - Background color for the input bar.
  * @property {string} input.textColor - Text color for the input field.
@@ -113,6 +114,101 @@ const TypingIndicator = () => (
   </div>
 );
 
+// --- Animation Components ---
+const DynamicTypingEffect = ({ fullText, onComplete }) => {
+  const safeText = typeof fullText === "string" ? fullText : "";
+  const [textToDisplay, setTextToDisplay] = useState("");
+
+  useEffect(() => {
+    if (safeText.length === 0) {
+      onComplete?.();
+      return;
+    }
+
+    let i = 0;
+    setTextToDisplay("");
+
+    const intervalId = setInterval(() => {
+      if (i < safeText.length) {
+        const nextChar = safeText.charAt(i);
+        setTextToDisplay((prev) => prev + nextChar);
+        i++;
+      } else {
+        clearInterval(intervalId);
+        onComplete?.();
+      }
+    }, 25); // smoother, faster feel
+
+    return () => clearInterval(intervalId);
+  }, [safeText, onComplete]);
+
+  return (
+    <div
+      className="prose prose-sm max-w-none text-inherit prose-p:my-0 prose-headings:my-2 prose-ul:my-1 prose-li:my-0.5"
+      style={{ color: "inherit" }}
+    >
+      <ReactMarkdown>{textToDisplay || ""}</ReactMarkdown>
+    </div>
+  );
+};
+
+
+const AnimatedResponseMessage = ({ text, animationType }) => {
+  const markdownClasses =
+    "prose prose-sm max-w-none text-inherit prose-p:my-0 prose-headings:my-2 prose-ul:my-1 prose-li:my-0.5";
+
+  switch (animationType) {
+    case "typing":
+      return <DynamicTypingEffect fullText={text} />;
+    case "fade-in":
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1.5, ease: "easeOut" }}
+        >
+          <div className={markdownClasses}><ReactMarkdown>{text}</ReactMarkdown></div>
+        </motion.div>
+      );
+    case "slide-up":
+      return (
+        <motion.div
+          initial={{ y: 50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.7, ease: "anticipate" }}
+        >
+          <div className={markdownClasses}><ReactMarkdown>{text}</ReactMarkdown></div>
+        </motion.div>
+      );
+    case "zoom-in":
+      return (
+        <motion.div
+          initial={{ scale: 0.5, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 1, ease: "backOut" }}
+        >
+          <div className={markdownClasses}><ReactMarkdown>{text}</ReactMarkdown></div>
+        </motion.div>
+      );
+    case "flip":
+      return (
+        <motion.div
+          initial={{ rotateX: -90, opacity: 0 }}
+          animate={{ rotateX: 0, opacity: 1 }}
+          transition={{ duration: 1, ease: "easeOut" }}
+          style={{ transformPerspective: 400 }}
+        >
+          <div className={markdownClasses}><ReactMarkdown>{text}</ReactMarkdown></div>
+        </motion.div>
+      );
+    default:
+      // 'none' or unknown: just render statically
+      return (
+        <div className={markdownClasses}><ReactMarkdown>{text}</ReactMarkdown></div>
+      );
+  }
+};
+
 const formatHistoryForApi = (messages) => {
   const history = [];
   if (!messages || messages.length === 0) {
@@ -176,6 +272,7 @@ const ChatBot = ({
   onSend = () => {},
   theme = {},
   geminiApiKey,
+  geminiModelName = "gemini-2.5-flash",
   messages: controlledMessages, // This is for the "Power User" case
 }) => {
   const [chatbotId] = useState(
@@ -203,12 +300,14 @@ const ChatBot = ({
     if (!geminiApiKey) return null;
     try {
       const genAI = new GoogleGenerativeAI(geminiApiKey);
-      return genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      return genAI.getGenerativeModel({
+        model: geminiModelName || "gemini-2.5-flash",
+      });
     } catch (error) {
       console.error("Failed to initialize Gemini:", error);
       return null;
     }
-  }, [geminiApiKey]);
+  }, [geminiApiKey, geminiModelName]);
 
   // --- Theming Engine ---
   const mergedTheme = useMemo(() => {
@@ -236,6 +335,7 @@ const ChatBot = ({
         showAvatars: true,
         bubbleShape: "rounded",
         bubblePointer: true,
+        animation: "fade-in",
       },
       input: {
         backgroundColor: "#ffffff",
@@ -402,7 +502,6 @@ const ChatBot = ({
     if (geminiModel) {
       setIsBotTyping(true);
       try {
-        // **FIX**: Use the new helper function to format history
         const chatHistory = formatHistoryForApi(newMessages);
 
         // The last message is the new user input, which should not be in the history.
@@ -414,7 +513,9 @@ const ChatBot = ({
         const result = await chat.sendMessage(lastUserMessage);
 
         const response = await result.response;
-        const text = response.text();
+        const text = (await response.text()) || "(no response)";
+        console.log("BOT RESPONSE TEXT =>", text);
+
         const botResponse = { id: Date.now() + 1, text, sender: "bot" };
         setMessages((prev) => [...prev, botResponse]);
       } catch (error) {
@@ -433,7 +534,7 @@ const ChatBot = ({
       setTimeout(() => {
         const defaultBotResponse = {
           id: Date.now() + 1,
-          text: `You said: "${trimmedInput}"`,
+          text: `You said: "${trimmedInput}"`, // ✅ Fixed template
           sender: "bot",
         };
         setMessages((prev) => [...prev, defaultBotResponse]);
@@ -520,6 +621,7 @@ const ChatBot = ({
       <AnimatePresence>
         {isOpen && isCenterPlacement && mergedTheme.window.backdrop && (
           <motion.div
+            key="chatbot-backdrop"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -536,6 +638,7 @@ const ChatBot = ({
 
         {isOpen && (
           <div
+            key="chatbot-window"
             ref={windowRef}
             aria-modal="true"
             role="dialog"
@@ -601,58 +704,80 @@ const ChatBot = ({
               aria-live="polite"
               className="chatbot-message-list flex-1 p-4 overflow-y-auto space-y-4"
             >
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex items-end max-w-[85%] gap-2 ${
-                    msg.sender === "user"
-                      ? "ml-auto flex-row-reverse"
-                      : "mr-auto"
-                  }`}
-                >
-                  {mergedTheme.messages.showAvatars && (
-                    <div className="w-7 h-7 rounded-full flex-shrink-0 overflow-hidden">
-                      {renderAvatar(
-                        msg.sender === "user" ? userAvatar : botAvatar
-                      )}
-                    </div>
-                  )}
-                  <div
-                    className={`px-3 py-2 ${
-                      bubbleShapeClasses[mergedTheme.messages.bubbleShape] ||
-                      bubbleShapeClasses.rounded
-                    } ${
-                      mergedTheme.messages.bubblePointer
-                        ? msg.sender === "user"
-                          ? "rounded-br-none"
-                          : "rounded-bl-none"
-                        : ""
+              <AnimatePresence initial={false}>
+                {messages.map((msg, index) => (
+                  <motion.div
+                    key={msg.id}
+                    layout
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
+                    className={`flex items-end max-w-[85%] gap-2 ${
+                      msg.sender === "user"
+                        ? "ml-auto flex-row-reverse"
+                        : "mr-auto"
                     }`}
-                    style={{
-                      backgroundColor:
-                        msg.sender === "user"
-                          ? "var(--chatbot-user-msg-bg)"
-                          : "var(--chatbot-bot-msg-bg)",
-                      color:
-                        msg.sender === "user"
-                          ? "var(--chatbot-user-msg-text-color)"
-                          : "var(--chatbot-bot-msg-text-color)",
-                      fontFamily: "var(--chatbot-msg-font-family)",
-                      fontSize: "var(--chatbot-msg-font-size)",
-                    }}
                   >
-                    <div
-                      className="prose prose-sm max-w-none text-inherit prose-p:my-0 prose-headings:my-2 prose-ul:my-1 prose-li:my-0.5"
-                      style={{ color: "inherit" }} // Ensures prose color matches bot/user text color
+                    {mergedTheme.messages.showAvatars && (
+                      <div className="w-7 h-7 rounded-full flex-shrink-0 overflow-hidden">
+                        {renderAvatar(
+                          msg.sender === "user" ? userAvatar : botAvatar
+                        )}
+                      </div>
+                    )}
+                    {/* ✨✨ KEY CHANGE HERE ✨✨ */}
+                    {/* The message bubble is now a motion.div with the layout prop */}
+                    <motion.div
+                      layout="position"
+                      transition={{ duration: 0.2, ease: "easeOut" }}
+                      className={`px-3 py-2 ${
+                        bubbleShapeClasses[mergedTheme.messages.bubbleShape] ||
+                        bubbleShapeClasses.rounded
+                      } ${
+                        mergedTheme.messages.bubblePointer
+                          ? msg.sender === "user"
+                            ? "rounded-br-none"
+                            : "rounded-bl-none"
+                          : ""
+                      }`}
+                      style={{
+                        backgroundColor:
+                          msg.sender === "user"
+                            ? "var(--chatbot-user-msg-bg)"
+                            : "var(--chatbot-bot-msg-bg)",
+                        color:
+                          msg.sender === "user"
+                            ? "var(--chatbot-user-msg-text-color)"
+                            : "var(--chatbot-bot-msg-text-color)",
+                        fontFamily: "var(--chatbot-msg-font-family)",
+                        fontSize: "var(--chatbot-msg-font-size)",
+                      }}
                     >
-                      <ReactMarkdown>{msg.text}</ReactMarkdown>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                      {msg.sender === "bot" && index === messages.length - 1 ? (
+                        <AnimatedResponseMessage
+                          text={msg.text}
+                          animationType={mergedTheme.messages.animation}
+                        />
+                      ) : (
+                        <div
+                          className="prose prose-sm max-w-none text-inherit prose-p:my-0 prose-headings:my-2 prose-ul:my-1 prose-li:my-0.5"
+                          style={{ color: "inherit" }}
+                        >
+                          <ReactMarkdown>{msg.text}</ReactMarkdown>
+                        </div>
+                      )}
+                    </motion.div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
               {/* **FIX**: Check the combined typing status */}
               {totalTypingStatus && (
-                <div className="flex items-end max-w-[85%] gap-2 mr-auto">
+                <div
+                  key="typing-indicator"
+                  className="flex items-end max-w-[85%] gap-2 mr-auto"
+                >
+                  {" "}
                   {mergedTheme.messages.showAvatars && (
                     <div className="w-7 h-7 rounded-full flex-shrink-0 overflow-hidden">
                       {renderAvatar(botAvatar)}

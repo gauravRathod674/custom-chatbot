@@ -82,11 +82,28 @@ function App() {
       </header>
 
       <main className="grid grid-cols-1 md:grid-cols-2 gap-16 items-start">
-        {/* <div className="p-6 bg-white rounded-xl shadow-md border border-gray-200">
+        <div className="p-6 bg-white rounded-xl shadow-md border border-gray-200">
           <h2 className="text-2xl font-semibold mb-2 text-blue-800">1. The "Plug & Play" User</h2>
           <p className="mb-4 text-gray-600">This developer wants a chatbot that just works. No props are passed, so the component uses its beautiful, built-in defaults.</p>
-          <ChatBot />
-        </div> */}
+          <ChatBot  theme={{
+              window: {
+                placement: "center",
+                // You can still override the larger default size if you want
+                width: "60vw",
+                height: "70vh",
+                backdrop: true,
+                backdropColor: "rgba(0, 0, 0, 0.5)",
+                backdropBlur: "8px",
+
+                scrollbarThumbColor: "#0891b2", // A darker cyan
+                scrollbarTrackColor: "#f0f9ff", // A very light blue
+              },
+              launcher: { backgroundColor: "#0e7490" },
+              header: { backgroundColor: "#0e7490" },
+              messages: { userBackgroundColor: "#06b6d4", animation: "typing" },
+              input: { focusRingColor: "#06b6d4" },
+            }}/>
+        </div>
         {/* 
         <div className="p-6 bg-white rounded-xl shadow-md border border-gray-200">
           <h2 className="text-2xl font-semibold mb-2 text-green-800">2. The "Minimalist" User</h2>
@@ -122,7 +139,7 @@ function App() {
           />
         </div> */}
 
-        <div className="p-6 bg-white rounded-xl shadow-md border border-gray-200">
+        {/* <div className="p-6 bg-white rounded-xl shadow-md border border-gray-200">
           <h2 className="text-2xl font-semibold mb-2 text-red-800">5. The "Gemini-Powered" Bot</h2>
           <p className="mb-4 text-gray-600">This developer has provided a Gemini API key. The bot is now a real AI assistant that can answer questions.</p>
           <ChatBot
@@ -139,13 +156,10 @@ function App() {
               input: { focusRingColor: '#c026d3' }
             }}
           />
-        </div>
+        </div> */}
 
         {/* <div className="p-6 bg-white rounded-xl shadow-md border border-gray-200">
-          <h2 className="text-2xl font-semibold mb-2 text-red-800">
-            {" "}
-          Chatbot
-          </h2>
+          <h2 className="text-2xl font-semibold mb-2 text-red-800"> Chatbot</h2>
           <p className="mb-4 text-gray-600">
             This developer has provided a Gemini API key. The bot is now a real
             AI assistant that can answer questions.
@@ -154,6 +168,7 @@ function App() {
             botName="Central Intelligence"
             welcomeMessage="Welcome to the main event. I have your full attention now. What can I do for you?"
             geminiApiKey={GEMINI_API_KEY}
+            geminiModelName="gemini-2.5-pro"
             theme={{
               window: {
                 placement: "center",
@@ -169,7 +184,7 @@ function App() {
               },
               launcher: { backgroundColor: "#0e7490" },
               header: { backgroundColor: "#0e7490" },
-              messages: { userBackgroundColor: "#06b6d4" },
+              messages: { userBackgroundColor: "#06b6d4", animation: "typing" },
               input: { focusRingColor: "#06b6d4" },
             }}
           />
