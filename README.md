@@ -5,8 +5,6 @@
 
 A highly customizable, performant, and intelligent React chatbot component. Drop it into any project to add a powerful conversational AI interface, powered by **Google Gemini, OpenAI, Anthropic (Claude), and Groq**.
 
-![ChatBot Demo](https://i.imgur.com/g0QkY7G.png)
-
 ## ✨ Features
 
 -   🤖 **Multi-API Support**: Integrates directly with Google Gemini, OpenAI, Anthropic (Claude), and Groq.
