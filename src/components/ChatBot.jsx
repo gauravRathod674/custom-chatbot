@@ -118,7 +118,7 @@ const TypingIndicator = () => (
 );
 
 // --- Animation Components ---
-const DynamicTypingEffect = ({ fullText, onComplete }) => {
+const DynamicTypingEffect = ({ fullText, onComplete,components  }) => {
   const safeText = typeof fullText === "string" ? fullText : "";
   const [textToDisplay, setTextToDisplay] = useState("");
 
@@ -146,22 +146,22 @@ const DynamicTypingEffect = ({ fullText, onComplete }) => {
   }, [safeText, onComplete]);
 
   return (
-    <div
+     <div
       className="prose prose-sm max-w-none text-inherit prose-p:my-0 prose-headings:my-2 prose-ul:my-1 prose-li:my-0.5"
       style={{ color: "inherit" }}
     >
-      <ReactMarkdown>{textToDisplay || ""}</ReactMarkdown>
+      <ReactMarkdown components={components}>{textToDisplay || ""}</ReactMarkdown>
     </div>
   );
 };
 
-const AnimatedResponseMessage = ({ text, animationType }) => {
+const AnimatedResponseMessage = ({ text, animationType,components  }) => {
   const markdownClasses =
     "prose prose-sm max-w-none text-inherit prose-p:my-0 prose-headings:my-2 prose-ul:my-1 prose-li:my-0.5";
 
   switch (animationType) {
     case "typing":
-      return <DynamicTypingEffect fullText={text} />;
+      return <DynamicTypingEffect fullText={text} components={components} />;
     case "fade-in":
       return (
         <motion.div
@@ -170,7 +170,7 @@ const AnimatedResponseMessage = ({ text, animationType }) => {
           transition={{ duration: 1.5, ease: "easeOut" }}
         >
           <div className={markdownClasses}>
-            <ReactMarkdown>{text}</ReactMarkdown>
+            <ReactMarkdown components={components}>{text}</ReactMarkdown>
           </div>
         </motion.div>
       );
@@ -182,7 +182,7 @@ const AnimatedResponseMessage = ({ text, animationType }) => {
           transition={{ duration: 0.7, ease: "anticipate" }}
         >
           <div className={markdownClasses}>
-            <ReactMarkdown>{text}</ReactMarkdown>
+            <ReactMarkdown components={components}>{text}</ReactMarkdown>
           </div>
         </motion.div>
       );
@@ -194,7 +194,7 @@ const AnimatedResponseMessage = ({ text, animationType }) => {
           transition={{ duration: 1, ease: "backOut" }}
         >
           <div className={markdownClasses}>
-            <ReactMarkdown>{text}</ReactMarkdown>
+            <ReactMarkdown components={components}>{text}</ReactMarkdown>
           </div>
         </motion.div>
       );
@@ -207,7 +207,7 @@ const AnimatedResponseMessage = ({ text, animationType }) => {
           style={{ transformPerspective: 400 }}
         >
           <div className={markdownClasses}>
-            <ReactMarkdown>{text}</ReactMarkdown>
+            <ReactMarkdown components={components}>{text}</ReactMarkdown>
           </div>
         </motion.div>
       );
@@ -215,7 +215,7 @@ const AnimatedResponseMessage = ({ text, animationType }) => {
       // 'none' or unknown: just render statically
       return (
         <div className={markdownClasses}>
-          <ReactMarkdown>{text}</ReactMarkdown>
+          <ReactMarkdown components={components}>{text}</ReactMarkdown>
         </div>
       );
   }
@@ -228,14 +228,14 @@ const formatHistoryForApi = (messages) => {
   }
 
   // Merge consecutive messages from the same sender
-const mergedMessages = messages.reduce((acc, current) => {
+  const mergedMessages = messages.reduce((acc, current) => {
     const lastMessage = acc.length > 0 ? acc[acc.length - 1] : null;
 
     if (lastMessage && lastMessage.sender === current.sender) {
       // Create a new object with the updated text
-      const updatedLastMessage = { 
-        ...lastMessage, 
-        text: `${lastMessage.text}\n${current.text}` 
+      const updatedLastMessage = {
+        ...lastMessage,
+        text: `${lastMessage.text}\n${current.text}`,
       };
       // Replace the last item with the new, updated object
       acc[acc.length - 1] = updatedLastMessage;
@@ -245,7 +245,7 @@ const mergedMessages = messages.reduce((acc, current) => {
     }
     return acc;
   }, []);
-  
+
   // Map to the Gemini API format
   let apiHistory = mergedMessages.map((msg) => ({
     role: msg.sender === "bot" ? "model" : "user",
@@ -287,7 +287,7 @@ const ChatBot = ({
   userAvatar = <DefaultUserIcon />,
   welcomeMessage = "Hello! How can I help?",
   placeholderText = "Type a message...",
-  customInstruction = "", 
+  customInstruction = "",
   isOpen: initialIsOpen = false,
   disabled = false,
   isTyping: parentIsTyping = false,
@@ -349,7 +349,10 @@ const ChatBot = ({
   // Anthropic (Claude) client
   const anthropic = useMemo(() => {
     if (!anthropicApiKey) return null;
-    return new Anthropic({ apiKey: anthropicApiKey, dangerouslyAllowBrowser: true });
+    return new Anthropic({
+      apiKey: anthropicApiKey,
+      dangerouslyAllowBrowser: true,
+    });
   }, [anthropicApiKey]);
 
   // Groq client
@@ -357,7 +360,6 @@ const ChatBot = ({
     if (!grokApiKey) return null;
     return new Groq({ apiKey: grokApiKey, dangerouslyAllowBrowser: true });
   }, [grokApiKey]);
-
 
   // --- Theming Engine ---
   const mergedTheme = useMemo(() => {
@@ -386,6 +388,7 @@ const ChatBot = ({
         bubbleShape: "rounded",
         bubblePointer: true,
         animation: "fade-in",
+        markdownStyles: {},
       },
       input: {
         backgroundColor: "#ffffff",
@@ -455,6 +458,32 @@ const ChatBot = ({
     }),
     [mergedTheme]
   );
+
+  const markdownComponents = useMemo(() => {
+    const styles = mergedTheme.messages.markdownStyles || {};
+    return {
+      strong: ({ node, ...props }) => (
+        <strong style={{ color: styles.boldColor || "inherit" }} {...props} />
+      ),
+      em: ({ node, ...props }) => (
+        <em style={{ color: styles.italicColor || "inherit" }} {...props} />
+      ),
+      a: ({ node, ...props }) => (
+        <a style={{ color: styles.linkColor || "#3b82f6" }} {...props} />
+      ),
+      code: ({ node, ...props }) => (
+        <code
+          style={{
+            color: styles.codeColor || "inherit",
+            backgroundColor: styles.codeBackgroundColor || "rgba(0, 0, 0, 0.1)",
+            padding: "0.1rem 0.3rem",
+            borderRadius: "0.25rem",
+          }}
+          {...props}
+        />
+      ),
+    };
+  }, [mergedTheme.messages.markdownStyles]);
 
   // --- Effects ---
 
@@ -658,7 +687,7 @@ const ChatBot = ({
           : [];
 
         const grokHistory = messages.map((msg) => ({
-          role: msg.sender === 'bot' ? 'assistant' : 'user',
+          role: msg.sender === "bot" ? "assistant" : "user",
           content: msg.text,
         }));
 
@@ -671,7 +700,9 @@ const ChatBot = ({
           model: grokModelName,
         });
 
-        const text = chatCompletion.choices[0]?.message?.content?.trim() || "(no response)";
+        const text =
+          chatCompletion.choices[0]?.message?.content?.trim() ||
+          "(no response)";
 
         setMessages((prev) => [
           ...prev,
@@ -720,7 +751,7 @@ const ChatBot = ({
     grokModelName,
     customInstruction, // Add to dependency array
   ]);
-  
+
   const handleKeyPress = useCallback(
     (e) => {
       if (e.key === "Enter") {
@@ -925,13 +956,14 @@ const ChatBot = ({
                         <AnimatedResponseMessage
                           text={msg.text}
                           animationType={mergedTheme.messages.animation}
+                          components={markdownComponents}
                         />
                       ) : (
                         <div
                           className="prose prose-sm max-w-none text-inherit prose-p:my-0 prose-headings:my-2 prose-ul:my-1 prose-li:my-0.5"
                           style={{ color: "inherit" }}
                         >
-                          <ReactMarkdown>{msg.text}</ReactMarkdown>
+                          <ReactMarkdown components={markdownComponents}>{msg.text}</ReactMarkdown>
                         </div>
                       )}
                     </motion.div>

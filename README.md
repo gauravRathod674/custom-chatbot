@@ -271,6 +271,16 @@ Pass a `theme` object to customize the chatbot's appearance. Any property you do
 | `messages.bubblePointer` | `boolean` | `true` | Show a small pointer on the message bubbles. |
 | `messages.animation` | `string` | `'fade-in'` | Bot response animation. Options: `'fade-in'`, `'typing'`, `'slide-up'`, `'zoom-in'`, `'flip'`, `'none'`. |
 
+#### Markdown Customization (`messages.markdownStyles`)
+
+| Path | Type | Default | Description |
+| --- | --- | --- | --- |
+| `markdownStyles.boldColor` | `string` | `inherit` | Color for `**bold**` text. |
+| `markdownStyles.italicColor` | `string` | `inherit` | Color for `*italic*` text. |
+| `markdownStyles.linkColor` | `string` | `'#3b82f6'` | Color for `[links](...)`. |
+| `markdownStyles.codeColor` | `string` | `inherit` | Text color for `inline code`. |
+| `markdownStyles.codeBackgroundColor` | `string` | `rgba(0,0,0,0.1)` | Background color for `inline code`. |
+
 #### Input Area
 
 | Path | Type | Default | Description |
