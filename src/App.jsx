@@ -2,7 +2,7 @@ import React from "react";
 import ChatBot from "./components/ChatBot";
 import "./App.css";
 
-const GEMINI_API_KEY = "AIzaSyBi0O2XvJRpWngtjvv2JswmGfnhESCy_20";
+const GEMINI_API_KEY = "GEMINI_API_KEY";
 
 // --- SVG Icons for Feature Cards ---
 const IconApi = () => (

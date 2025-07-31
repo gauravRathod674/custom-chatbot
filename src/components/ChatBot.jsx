@@ -55,7 +55,6 @@ import ReactMarkdown from "react-markdown";
  */
 
 // --- Helper Components & Icons ---
-
 const DefaultBotIcon = () => (
   <svg
     viewBox="0 0 24 24"
@@ -140,7 +139,7 @@ const DynamicTypingEffect = ({ fullText, onComplete,components  }) => {
         clearInterval(intervalId);
         onComplete?.();
       }
-    }, 25); // smoother, faster feel
+    }, 25); 
 
     return () => clearInterval(intervalId);
   }, [safeText, onComplete]);
@@ -212,7 +211,6 @@ const AnimatedResponseMessage = ({ text, animationType,components  }) => {
         </motion.div>
       );
     default:
-      // 'none' or unknown: just render statically
       return (
         <div className={markdownClasses}>
           <ReactMarkdown components={components}>{text}</ReactMarkdown>
@@ -486,7 +484,6 @@ const ChatBot = ({
   }, [mergedTheme.messages.markdownStyles]);
 
   // --- Effects ---
-
   useEffect(() => {
     const thumbColor = mergedTheme.window.scrollbarThumbColor;
     const trackColor = mergedTheme.window.scrollbarTrackColor;
