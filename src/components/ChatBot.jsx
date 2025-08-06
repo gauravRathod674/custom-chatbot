@@ -7,6 +7,10 @@ import React, {
 } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faMicrophone,
+  faMicrophoneSlash,
+} from "@fortawesome/free-solid-svg-icons";
 import { faCommentDots } from "@fortawesome/free-solid-svg-icons";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import OpenAI from "openai";
@@ -52,6 +56,8 @@ import ReactMarkdown from "react-markdown";
  * @property {string} window.placement - Placement on screen ('bottom-right', 'bottom-left').
  * @property {string} [window.scrollbarThumbColor] - Color of the scrollbar thumb.
  * @property {string} [window.scrollbarTrackColor] - Color of the scrollbar track.
+ * @property {string} input.micBackgroundColor - background of mic button
+ * @property {string} input.micIconColor - color of mic icon
  */
 
 // --- Helper Components & Icons ---
@@ -117,7 +123,7 @@ const TypingIndicator = () => (
 );
 
 // --- Animation Components ---
-const DynamicTypingEffect = ({ fullText, onComplete,components  }) => {
+const DynamicTypingEffect = ({ fullText, onComplete, components }) => {
   const safeText = typeof fullText === "string" ? fullText : "";
   const [textToDisplay, setTextToDisplay] = useState("");
 
@@ -139,22 +145,24 @@ const DynamicTypingEffect = ({ fullText, onComplete,components  }) => {
         clearInterval(intervalId);
         onComplete?.();
       }
-    }, 25); 
+    }, 25);
 
     return () => clearInterval(intervalId);
   }, [safeText, onComplete]);
 
   return (
-     <div
+    <div
       className="prose prose-sm max-w-none text-inherit prose-p:my-0 prose-headings:my-2 prose-ul:my-1 prose-li:my-0.5"
       style={{ color: "inherit" }}
     >
-      <ReactMarkdown components={components}>{textToDisplay || ""}</ReactMarkdown>
+      <ReactMarkdown components={components}>
+        {textToDisplay || ""}
+      </ReactMarkdown>
     </div>
   );
 };
 
-const AnimatedResponseMessage = ({ text, animationType,components  }) => {
+const AnimatedResponseMessage = ({ text, animationType, components }) => {
   const markdownClasses =
     "prose prose-sm max-w-none text-inherit prose-p:my-0 prose-headings:my-2 prose-ul:my-1 prose-li:my-0.5";
 
@@ -300,6 +308,7 @@ const ChatBot = ({
   grokApiKey,
   grokModelName = "llama3-8b-8192",
   messages: controlledMessages,
+  googleSTTCredentialsPath,
 }) => {
   const [chatbotId] = useState(
     () => `chatbot-instance-${Math.random().toString(36).substring(2, 9)}`
@@ -313,6 +322,8 @@ const ChatBot = ({
   const [inputValue, setInputValue] = useState("");
   const [isBotTyping, setIsBotTyping] = useState(false);
 
+  const [isRecording, setIsRecording] = useState(false);
+
   const isControlled = typeof controlledMessages !== "undefined";
   const messages = isControlled ? controlledMessages : internalMessages;
   const setMessages = isControlled ? () => {} : setInternalMessages;
@@ -321,6 +332,8 @@ const ChatBot = ({
   const messagesEndRef = useRef(null);
   const launcherRef = useRef(null);
   const windowRef = useRef(null);
+
+  const recognitionRef = useRef(null);
 
   // Gemini client
   const geminiModel = useMemo(() => {
@@ -484,6 +497,28 @@ const ChatBot = ({
   }, [mergedTheme.messages.markdownStyles]);
 
   // --- Effects ---
+
+  useEffect(() => {
+    // set up Web Speech API
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recog = new SpeechRecognition();
+      recog.continuous = false;
+      recog.interimResults = false;
+      recog.lang = "en-US"; // make customizable via props if you like
+
+      recog.onstart = () => setIsRecording(true);
+      recog.onend = () => setIsRecording(false);
+      recog.onresult = (evt) => {
+        const transcript = evt.results[0][0].transcript;
+        setInputValue((prev) => prev + (prev ? " " : "") + transcript);
+      };
+
+      recognitionRef.current = recog;
+    }
+  }, []);
+
   useEffect(() => {
     const thumbColor = mergedTheme.window.scrollbarThumbColor;
     const trackColor = mergedTheme.window.scrollbarTrackColor;
@@ -758,6 +793,18 @@ const ChatBot = ({
     [handleSend]
   );
 
+  const startRecording = () => {
+    if (recognitionRef.current && !isRecording) {
+      recognitionRef.current.start();
+    }
+  };
+
+  const stopRecording = () => {
+    if (recognitionRef.current && isRecording) {
+      recognitionRef.current.stop();
+    }
+  };
+
   // --- Sub-Components ---
 
   const renderAvatar = (avatar) => {
@@ -960,7 +1007,9 @@ const ChatBot = ({
                           className="prose prose-sm max-w-none text-inherit prose-p:my-0 prose-headings:my-2 prose-ul:my-1 prose-li:my-0.5"
                           style={{ color: "inherit" }}
                         >
-                          <ReactMarkdown components={markdownComponents}>{msg.text}</ReactMarkdown>
+                          <ReactMarkdown components={markdownComponents}>
+                            {msg.text}
+                          </ReactMarkdown>
                         </div>
                       )}
                     </motion.div>
@@ -1017,19 +1066,51 @@ const ChatBot = ({
                     "--tw-ring-color": "var(--chatbot-input-focus-ring)",
                   }}
                 />
-                <button
-                  onClick={handleSend}
-                  disabled={!inputValue.trim() || disabled || totalTypingStatus}
-                  aria-label="Send Message"
-                  className="px-4 h-10 rounded-full flex items-center justify-center flex-shrink-0 font-semibold text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{
-                    backgroundColor: "var(--chatbot-user-msg-bg)",
-                    color: "var(--chatbot-user-msg-text-color)",
-                    "--tw-ring-color": "var(--chatbot-user-msg-bg)",
-                  }}
-                >
-                  <SendIcon />
-                </button>
+                {!googleSTTCredentialsPath || inputValue.trim() ? (
+                  // **SEND** button when there is text
+                  <button
+                    onClick={handleSend}
+                    disabled={
+                      !inputValue.trim() || disabled || totalTypingStatus
+                    }
+                    aria-label="Send Message"
+                    className="px-4 h-10 rounded-full flex items-center justify-center flex-shrink-0 font-semibold text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      backgroundColor: "var(--chatbot-user-msg-bg)",
+                      color: "var(--chatbot-user-msg-text-color)",
+                      "--tw-ring-color": "var(--chatbot-user-msg-bg)",
+                    }}
+                  >
+                    <SendIcon />
+                  </button>
+                ) : (
+                  // Show Mic if no text and STT is enabled
+                  <motion.button
+                    onClick={isRecording ? stopRecording : startRecording}
+                    aria-label={
+                      isRecording ? "Stop Recording" : "Start Recording"
+                    }
+                    className="px-4 h-10 rounded-full flex items-center justify-center flex-shrink-0 focus:outline-none"
+                    style={{
+                      backgroundColor:
+                        theme.input.micBackgroundColor ||
+                        "var(--chatbot-input-bg)",
+                      color:
+                        theme.input.micIconColor ||
+                        "var(--chatbot-input-text-color)",
+                    }}
+                    animate={isRecording ? { scale: [1, 1.2, 1] } : {}}
+                    transition={{
+                      duration: 1.2,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                  >
+                    <FontAwesomeIcon
+                      icon={isRecording ? faMicrophoneSlash : faMicrophone}
+                    />
+                  </motion.button>
+                )}
               </div>
             </footer>
           </div>

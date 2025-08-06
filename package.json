@@ -27,17 +27,17 @@
     }
   },
   "peerDependencies": {
+    "@anthropic-ai/sdk": ">=0.20.0",
     "@fortawesome/fontawesome-svg-core": ">=6.0.0",
     "@fortawesome/free-solid-svg-icons": ">=6.0.0",
     "@fortawesome/react-fontawesome": ">=0.2.0",
+    "@google/generative-ai": ">=0.14.0",
+    "framer-motion": ">=11.0.0",
+    "groq-sdk": ">=0.5.0",
+    "openai": ">=4.0.0",
     "react": ">=18.2.0",
     "react-dom": ">=18.2.0",
-    "react-markdown": ">=9.0.0",
-    "framer-motion": ">=11.0.0",
-    "@google/generative-ai": ">=0.14.0",
-    "openai": ">=4.0.0",
-    "@anthropic-ai/sdk": ">=0.20.0",
-    "groq-sdk": ">=0.5.0"
+    "react-markdown": ">=9.0.0"
   },
   "peerDependenciesMeta": {
     "@google/generative-ai": {
@@ -54,23 +54,23 @@
     }
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^0.22.0",
     "@fortawesome/fontawesome-svg-core": "^6.5.2",
-    "@fortawesome/free-solid-svg-icons": "^6.5.2",
+    "@fortawesome/free-solid-svg-icons": "^6.7.2",
     "@fortawesome/react-fontawesome": "^0.2.2",
+    "@google/generative-ai": "^0.14.1",
     "@tailwindcss/typography": "^0.5.13",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.19",
     "eslint": "^8.57.0",
+    "framer-motion": "^11.3.2",
+    "groq-sdk": "^0.5.0",
+    "openai": "^4.52.3",
     "postcss": "^8.4.38",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-markdown": "^9.0.1",
     "tailwindcss": "^3.4.3",
-    "vite": "^5.2.0",
-    "framer-motion": "^11.3.2",
-    "@google/generative-ai": "^0.14.1",
-    "openai": "^4.52.3",
-    "@anthropic-ai/sdk": "^0.22.0",
-    "groq-sdk": "^0.5.0"
+    "vite": "^5.2.0"
   }
 }

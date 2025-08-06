@@ -272,6 +272,9 @@ function App() {
           welcomeMessage="System online. I am Aura AI. How may I assist you with your query?"
           placeholderText="Enter your query..."
           theme={glassTheme}
+          googleSTTCredentialsPath="src/nexus-text-to-speech-50d75f778774.json"
+          micButtonBg="#007bff"
+          micIconColor="#fff"
         />
       </div>
     </div>
