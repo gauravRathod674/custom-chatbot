@@ -539,20 +539,24 @@ const ChatBot = ({
     const styleElement = document.createElement("style");
     styleElement.id = styleId;
     styleElement.innerHTML = `
-      /* Modern browsers */
-      #${chatbotId} .chatbot-message-list {
+      /* Target both the message list and the textarea input */
+      #${chatbotId} .chatbot-message-list,
+      #${chatbotId} .chatbot-textarea-input {
         scrollbar-width: thin;
         scrollbar-color: ${thumbColor} ${trackColor};
       }
       /* WebKit-based browsers (Chrome, Safari, Edge) */
-      #${chatbotId} .chatbot-message-list::-webkit-scrollbar {
+      #${chatbotId} .chatbot-message-list::-webkit-scrollbar,
+      #${chatbotId} .chatbot-textarea-input::-webkit-scrollbar {
         width: 8px;
       }
-      #${chatbotId} .chatbot-message-list::-webkit-scrollbar-track {
+      #${chatbotId} .chatbot-message-list::-webkit-scrollbar-track,
+      #${chatbotId} .chatbot-textarea-input::-webkit-scrollbar-track {
         background: ${trackColor};
         border-radius: 4px;
       }
-      #${chatbotId} .chatbot-message-list::-webkit-scrollbar-thumb {
+      #${chatbotId} .chatbot-message-list::-webkit-scrollbar-thumb,
+      #${chatbotId} .chatbot-textarea-input::-webkit-scrollbar-thumb {
         background-color: ${thumbColor};
         border-radius: 4px;
         border: 2px solid ${trackColor};
@@ -595,6 +599,21 @@ const ChatBot = ({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen]);
+
+  useEffect(() => {
+    const textarea = inputRef.current;
+    if (!textarea) return;
+
+    textarea.style.height = "auto";
+    textarea.style.height = `${textarea.scrollHeight}px`;
+
+    // Show scrollbar only if scrollHeight exceeds clientHeight significantly
+    const threshold = 4; // 4px buffer for browser quirks
+    const needsScrollbar =
+      textarea.scrollHeight - textarea.clientHeight > threshold;
+
+    textarea.style.overflowY = needsScrollbar ? "auto" : "hidden";
+  }, [inputValue]);
 
   // --- Handlers ---
 
@@ -795,7 +814,9 @@ const ChatBot = ({
 
   const handleKeyPress = useCallback(
     (e) => {
-      if (e.key === "Enter") {
+      // Send message on Enter, but allow new lines with Shift+Enter
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault(); // Prevents adding a new line
         handleSend();
       }
     },
@@ -1059,21 +1080,24 @@ const ChatBot = ({
                 backgroundColor: "var(--chatbot-input-bg)",
               }}
             >
-              <div className="flex items-center space-x-2">
-                <input
+              <div className="flex items-end space-x-2">
+                <textarea
                   ref={inputRef}
-                  type="text"
+                  rows="1"
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  onKeyPress={handleKeyPress}
+                  onKeyDown={handleKeyPress} // Use onKeyDown instead of onKeyPress
                   placeholder={placeholderText}
                   disabled={disabled || totalTypingStatus}
                   aria-label="Chat input"
-                  className="flex-1 w-full px-4 py-2 bg-transparent rounded-full border focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="chatbot-textarea-input flex-1 w-full px-4 py-2 bg-transparent rounded-xl border focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60 resize-none overflow-hidden"
                   style={{
                     color: "var(--chatbot-input-text-color)",
                     borderColor: "var(--chatbot-input-border-color)",
                     "--tw-ring-color": "var(--chatbot-input-focus-ring)",
+                    maxHeight: "100px", // Set a max-height before scrollbar appears
+                    overflowY: "hidden", // Add scrollbar when content exceeds max-height
+                    lineHeight: "1.5",
                   }}
                 />
                 {!googleSTTCredentialsPath || inputValue.trim() ? (
