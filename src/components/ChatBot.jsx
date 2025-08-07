@@ -499,20 +499,29 @@ const ChatBot = ({
   // --- Effects ---
 
   useEffect(() => {
-    // set up Web Speech API
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
+
     if (SpeechRecognition) {
       const recog = new SpeechRecognition();
-      recog.continuous = false;
+      recog.continuous = true; // 🔁 Keep listening until stopped manually
       recog.interimResults = false;
-      recog.lang = "en-US"; // make customizable via props if you like
+      recog.lang = "en-US";
 
       recog.onstart = () => setIsRecording(true);
-      recog.onend = () => setIsRecording(false);
+
       recog.onresult = (evt) => {
-        const transcript = evt.results[0][0].transcript;
+        const transcript = evt.results[evt.results.length - 1][0].transcript;
         setInputValue((prev) => prev + (prev ? " " : "") + transcript);
+      };
+
+      recog.onerror = (e) => {
+        console.error("Speech error:", e);
+      };
+
+      recog.onend = () => {
+        // ❌ DO NOT set isRecording false here
+        // We'll stop explicitly with stopRecording
       };
 
       recognitionRef.current = recog;
@@ -802,6 +811,7 @@ const ChatBot = ({
   const stopRecording = () => {
     if (recognitionRef.current && isRecording) {
       recognitionRef.current.stop();
+      setIsRecording(false);
     }
   };
 
@@ -1090,24 +1100,26 @@ const ChatBot = ({
                     aria-label={
                       isRecording ? "Stop Recording" : "Start Recording"
                     }
-                    className="px-4 h-10 rounded-full flex items-center justify-center flex-shrink-0 focus:outline-none"
+                    className="px-4 h-10 rounded-full flex items-center justify-center flex-shrink-0 font-semibold text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{
-                      backgroundColor:
-                        theme.input.micBackgroundColor ||
-                        "var(--chatbot-input-bg)",
-                      color:
-                        theme.input.micIconColor ||
-                        "var(--chatbot-input-text-color)",
+                      backgroundColor: "var(--chatbot-user-msg-bg)",
+                      color: "var(--chatbot-user-msg-text-color)",
+                      "--tw-ring-color": "var(--chatbot-user-msg-bg)",
                     }}
-                    animate={isRecording ? { scale: [1, 1.2, 1] } : {}}
-                    transition={{
-                      duration: 1.2,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                    }}
+                    animate={
+                      isRecording
+                        ? { opacity: [1, 0.8, 1], scale: [1, 1.1, 1] }
+                        : { opacity: 1, scale: 1 }
+                    }
+                    transition={
+                      isRecording
+                        ? { duration: 1, repeat: Infinity, ease: "easeInOut" }
+                        : {}
+                    }
                   >
                     <FontAwesomeIcon
                       icon={isRecording ? faMicrophoneSlash : faMicrophone}
+                      className="w-5 h-5"
                     />
                   </motion.button>
                 )}
