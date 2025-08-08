@@ -416,7 +416,7 @@ const ChatBot = ({
   grokApiKey,
   grokModelName = "llama3-8b-8192",
   messages: controlledMessages,
-  googleSTTCredentialsPath,
+  enableMicrophone,
   enableFileUpload = false,
   fileUploadAccept = "*",
   onFileUpload = () => {},
@@ -1389,7 +1389,7 @@ const ChatBot = ({
                       className="w-5 h-5"
                     />
                   </motion.button>
-                ) : googleSTTCredentialsPath && !inputValue.trim() ? (
+                ) : enableMicrophone && !inputValue.trim() ? (
                   // 2. Show START button ONLY if not recording, STT is enabled, and there is no text.
                   <motion.button
                     onClick={startRecording}

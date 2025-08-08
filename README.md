@@ -27,7 +27,7 @@ This demo showcases:
 -   🚀 **Model Selection**: Choose the exact AI model you want to use from any supported provider (e.g., `gemini-1.5-flash`, `gpt-4o-mini`, `claude-3-haiku`, `llama3-8b-8192`).
 -   🎨 **Deeply Customizable**: Use a comprehensive `theme` object to control every color, font, border, and size.
 -   🎬 **Typing Animation**: Engage users with a smooth, character-by-character typing animation for bot responses.
--   🗣️ **Speech-to-Text (optional)** — supports browser Web Speech API and configuration for Google Speech-to-Text integration.
+-   🗣️ **Speech-to-Text (optional)** — Built-in voice input using the browser's Web Speech API for hands-free interaction.
 -   📎 **File Uploads (optional)**: Allow users to upload images and files for multi-modal conversations with compatible models (Gemini, GPT-4o, Claude 3).
 -   🧩 **Flexible Placement**: Display as a classic corner widget or a large, focused modal.
 -   💅 **Markdown Rendering**: Automatically renders lists, bold/italic text, headers, and more.
@@ -163,7 +163,7 @@ function App() {
       botName="Gemini Bot"
       geminiApiKey={GEMINI_API_KEY}
       geminiModelName="gemini-1.5-flash"
-      googleSTTCredentialsPath="PATH" // .json file path of google speech to text api
+      enableMicrophone="enabled"
       enableFileUpload={true}
       fileUploadAccept="image/*,.pdf,.doc,.docx" 
       welcomeMessage="I am powered by Gemini. How can I help?"
@@ -246,7 +246,7 @@ These props control the chatbot's functionality, identity, and AI integration.
 | `anthropicModelName`| `string` | `'claude-3-haiku-20240307'` | The Anthropic model to use. |
 | `grokModelName` | `string` | `'llama3-8b-8192'` | The Groq model to use. |
 | `customInstruction`| `string` | `''` | A system prompt to define the bot's persona or behavior. |
-| `googleSTTCredentialsPath` | `string` | `undefined` | Any truthy string to enable the Speech-to-Text microphone. Does not require actual credentials. |
+| `enableMicrophone` | `string` | `undefined` | Any truthy string to enable the Speech-to-Text microphone. Does not require actual credentials. |
 | `enableFileUpload` | `boolean` | `false` | Enables the file attachment button. |
 | `fileUploadAccept` | `string` | `*` | A string of accepted file types for the upload dialog (e.g., `"image/*, .pdf"`). |
 | `onFileUpload` | `(file: File) => void` | `() => {}` | **Callback that fires when a user selects a file. |
