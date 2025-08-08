@@ -1,3 +1,8 @@
+Of course\! It's important to keep the documentation updated with the latest features. Based on the capabilities outlined in the `ChatBot.jsx` file you provided, here is the updated source code for your `README.md`.
+
+This version includes the new "Speech-to-Text" and "File Uploads" features, along with usage examples and updated API documentation.
+
+````markdown
 # Super Customizable React ChatBot
 
 [![npm](https://img.shields.io/npm/v/@gauravrathod674/super-customizable-chatbot.svg)](https://www.npmjs.com/package/@gauravrathod674/super-customizable-chatbot)
@@ -25,10 +30,10 @@ This demo showcases:
 -   🤖 **Multi-API Support**: Integrates directly with Google Gemini, OpenAI, Anthropic (Claude), and Groq.
 -   🧠 **Custom Instructions**: Provide a system prompt to define the bot's persona, role, and rules.
 -   🚀 **Model Selection**: Choose the exact AI model you want to use from any supported provider (e.g., `gemini-1.5-flash`, `gpt-4o-mini`, `claude-3-haiku`, `llama3-8b-8192`).
+-   🎤 **Speech-to-Text**: Built-in voice input using the browser's Web Speech API for hands-free interaction.
+-   📎 **File Uploads**: Allow users to upload images and files for multi-modal conversations with compatible models (Gemini, GPT-4o, Claude 3).
 -   🎨 **Deeply Customizable**: Use a comprehensive `theme` object to control every color, font, border, and size.
 -   🎬 **Typing Animation**: Engage users with a smooth, character-by-character typing animation for bot responses.
--   🗣️ **Speech-to-Text (optional)** — supports browser Web Speech API and configuration for Google Speech-to-Text integration.
--   📎 **File Uploads (optional)**: Allow users to upload images and files for multi-modal conversations with compatible models (Gemini, GPT-4o, Claude 3).
 -   🧩 **Flexible Placement**: Display as a classic corner widget or a large, focused modal.
 -   💅 **Markdown Rendering**: Automatically renders lists, bold/italic text, headers, and more.
 -   💪 **Controlled & Uncontrolled Modes**: Use it as a simple plug-and-play component or take full control over its state.
@@ -40,7 +45,7 @@ Install the package and its core peer dependencies from NPM.
 
 ```bash
 npm install @gauravrathod674/super-customizable-chatbot @fortawesome/react-fontawesome @fortawesome/free-solid-svg-icons @fortawesome/fontawesome-svg-core framer-motion react-markdown
-```
+````
 
 ### AI Provider SDKs
 
@@ -64,7 +69,11 @@ npm install groq-sdk
 
 Import the component and its stylesheet, then render it with the appropriate API key.
 
-### Example: Google Gemini
+### Example: Enabling Advanced Features
+
+Easily enable speech-to-text and file uploads with a few simple props. The `googleSTTCredentialsPath` prop acts as a feature flag to turn on the microphone, and `enableFileUpload` adds the attachment button.
+
+**Note:** The Speech-to-Text feature uses the browser's native Web Speech API and does not actually require Google credentials. It is best supported on Chrome and Edge.
 
 ```jsx
 import React from 'react';
@@ -76,97 +85,13 @@ function App() {
 
   return (
     <ChatBot
-      botName="Gemini Bot"
+      botName="Vision Bot"
       geminiApiKey={GEMINI_API_KEY}
-      geminiModelName="gemini-1.5-flash"
-      welcomeMessage="I am powered by Gemini. How can I help?"
-    />
-  );
-}
-```
-
-### Example: OpenAI
-
-```jsx
-import React from 'react';
-import ChatBot from '@gauravrathod674/super-customizable-chatbot';
-import '@gauravrathod674/super-customizable-chatbot/dist/style.css';
-
-function App() {
-  const OPENAI_API_KEY = "YOUR_OPENAI_API_KEY";
-
-  return (
-    <ChatBot
-      botName="OpenAI Bot"
-      openaiApiKey={OPENAI_API_KEY}
-      openaiModelName="gpt-4o-mini"
-      welcomeMessage="I am powered by OpenAI. How can I help?"
-    />
-  );
-}
-```
-
-### Example: Anthropic (Claude)
-
-```jsx
-import React from 'react';
-import ChatBot from '@gauravrathod674/super-customizable-chatbot';
-import '@gauravrathod674/super-customizable-chatbot/dist/style.css';
-
-function App() {
-  const ANTHROPIC_API_KEY = "YOUR_ANTHROPIC_API_KEY";
-
-  return (
-    <ChatBot
-      botName="Claude Bot"
-      anthropicApiKey={ANTHROPIC_API_KEY}
-      anthropicModelName="claude-3-haiku-20240307"
-      welcomeMessage="I am powered by Claude. How can I help?"
-    />
-  );
-}
-```
-
-### Example: Groq
-
-```jsx
-import React from 'react';
-import ChatBot from '@gauravrathod674/super-customizable-chatbot';
-import '@gauravrathod674/super-customizable-chatbot/dist/style.css';
-
-function App() {
-  const GROQ_API_KEY = "YOUR_GROQ_API_KEY";
-
-  return (
-    <ChatBot
-      botName="Groq Bot"
-      grokApiKey={GROQ_API_KEY}
-      grokModelName="llama3-8b-8192"
-      welcomeMessage="I am powered by Groq. I am very fast. How can I help?"
-    />
-  );
-}
-
-```
-### Example: Speech to text and File Upload
-
-```jsx
-import React from 'react';
-import ChatBot from '@gauravrathod674/super-customizable-chatbot';
-import '@gauravrathod674/super-customizable-chatbot/dist/style.css';
-
-function App() {
-  const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY";
-
-  return (
-    <ChatBot
-      botName="Gemini Bot"
-      geminiApiKey={GEMINI_API_KEY}
-      geminiModelName="gemini-1.5-flash"
-      googleSTTCredentialsPath="PATH" // .json file path of google speech to text api
+      // --- Enable Advanced Features ---
+      googleSTTCredentialsPath="enable" // Any non-empty string enables the microphone
       enableFileUpload={true}
-      fileUploadAccept="image/*,.pdf,.doc,.docx" 
-      welcomeMessage="I am powered by Gemini. How can I help?"
+      fileUploadAccept="image/*" // Allow only images for vision models
+      placeholderText="Ask me about an image..."
     />
   );
 }
@@ -191,7 +116,7 @@ The component's biggest strength is its customizability. You can override any de
 
 ### Example: Typing Animation & Custom Theme
 
-This example creates a large, centered chatbot with a blurred backdrop, a unique color scheme, and the new typing animation.
+This example creates a large, centered chatbot with a blurred backdrop, a unique color scheme, and the typing animation.
 
 ```jsx
 import React from 'react';
@@ -226,7 +151,6 @@ function ChatPage() {
 }
 ```
 
-
 ## API Reference
 
 The component can be customized through two main avenues: direct `props` for behavior and a `theme` object for appearance.
@@ -246,10 +170,6 @@ These props control the chatbot's functionality, identity, and AI integration.
 | `anthropicModelName`| `string` | `'claude-3-haiku-20240307'` | The Anthropic model to use. |
 | `grokModelName` | `string` | `'llama3-8b-8192'` | The Groq model to use. |
 | `customInstruction`| `string` | `''` | A system prompt to define the bot's persona or behavior. |
-| `googleSTTCredentialsPath` | `string` | `undefined` | Any truthy string to enable the Speech-to-Text microphone. Does not require actual credentials. |
-| `enableFileUpload` | `boolean` | `false` | Enables the file attachment button. |
-| `fileUploadAccept` | `string` | `*` | A string of accepted file types for the upload dialog (e.g., `"image/*, .pdf"`). |
-| `onFileUpload` | `(file: File) => void` | `() => {}` | **Callback that fires when a user selects a file. |
 | `botName` | `string` | `'ChatBot'` | The name displayed in the header. |
 | `welcomeMessage` | `string` | `'Hello! How can I help?'` | The initial message displayed by the bot. |
 | `placeholderText`| `string` | `'Type a message...'` | The placeholder text in the input field. |
@@ -257,12 +177,16 @@ These props control the chatbot's functionality, identity, and AI integration.
 | `userAvatar` | `React.ReactNode` | `<DefaultUserIcon />` | An icon or image URL for the user's avatar. |
 | `isOpen` | `boolean` | `false` | Controls whether the chat window is open initially. |
 | `disabled` | `boolean` | `false` | Disables the input field and send button. |
+| **`googleSTTCredentialsPath`** | **`string`** | **`undefined`** | **Any truthy string to enable the Speech-to-Text microphone.** Does not require actual credentials. |
+| **`enableFileUpload`** | **`boolean`** | **`false`** | **Enables the file attachment button.** |
+| **`fileUploadAccept`** | **`string`** | **`*`** | **A string of accepted file types for the upload dialog** (e.g., `"image/*, .pdf"`). |
+| **`onFileUpload`** | **`(file: File) => void`** | **`() => {}`** | **Callback that fires when a user selects a file.** |
 | `onSend` | `(message: string) => void` | `() => {}` | Callback when a user sends a message. |
 | `theme` | `object` | `{}` | A theme object to customize the UI. See table below. |
 | `messages` | `Array<{id, text, sender}>` | `undefined` | **Advanced:** A controlled array of message objects. |
 | `isTyping` | `boolean` | `false` | **Advanced:** Manually controls the bot's typing indicator. |
 
----
+-----
 
 ### Theming Options (`theme` object)
 
@@ -340,3 +264,5 @@ Pass a `theme` object to customize the chatbot's appearance. Any property you do
 
 This project is licensed under the MIT License.
 
+```
+```
