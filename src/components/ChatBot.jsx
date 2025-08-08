@@ -10,6 +10,9 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faMicrophone,
   faMicrophoneSlash,
+  faTimes,
+  faFileAlt,
+  faPaperclip,
 } from "@fortawesome/free-solid-svg-icons";
 import { faCommentDots } from "@fortawesome/free-solid-svg-icons";
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -56,11 +59,23 @@ import ReactMarkdown from "react-markdown";
  * @property {string} window.placement - Placement on screen ('bottom-right', 'bottom-left').
  * @property {string} [window.scrollbarThumbColor] - Color of the scrollbar thumb.
  * @property {string} [window.scrollbarTrackColor] - Color of the scrollbar track.
- * @property {string} input.micBackgroundColor - background of mic button
- * @property {string} input.micIconColor - color of mic icon
  */
 
 // --- Helper Components & Icons ---
+
+/**
+ * Converts a File object to a Base64 encoded string.
+ * @param {File} file The file to convert.
+ * @returns {Promise<string>} A promise that resolves with the Base64 string.
+ */
+const fileToBase64 = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result.split(",")[1]); // Return only the Base64 part
+    reader.onerror = (error) => reject(error);
+  });
+
 const DefaultBotIcon = () => (
   <svg
     viewBox="0 0 24 24"
@@ -114,11 +129,101 @@ const SendIcon = () => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M6 12h9" />
   </svg>
 );
+
 const TypingIndicator = () => (
   <div className="flex items-center space-x-1 p-3">
     <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:-0.3s]"></div>
     <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:-0.15s]"></div>
     <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
+  </div>
+);
+
+// --- Component for displaying the file inside a sent message bubble ---
+const MessageAttachmentPreview = ({ attachment }) => {
+  if (!attachment) return null;
+
+  return (
+    <div className="mb-2 p-2 bg-black/10 rounded-lg max-w-[200px]">
+      {attachment.previewUrl ? (
+        <img
+          src={attachment.previewUrl}
+          alt={attachment.name}
+          className="w-full h-auto object-cover rounded-md"
+        />
+      ) : (
+        <div className="flex items-center gap-2 text-sm">
+          <FontAwesomeIcon icon={faFileAlt} className="w-5 h-5 flex-shrink-0" />
+          <span className="truncate">{attachment.name}</span>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// --- File Preview Component ---
+const FilePreview = ({ file, onRemove }) => {
+  const [previewUrl, setPreviewUrl] = useState(null);
+
+  useEffect(() => {
+    if (file && file.type.startsWith("image/")) {
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
+    }
+    setPreviewUrl(null);
+  }, [file]);
+
+  if (!file) return null;
+
+  return (
+    <div className="relative inline-flex items-center gap-2 p-2 mb-2 bg-[--chatbot-bot-msg-bg] rounded-lg border border-[--chatbot-input-border-color] max-w-xs">
+      <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-black/20 rounded-md">
+        {previewUrl ? (
+          <img
+            src={previewUrl}
+            alt={file.name}
+            className="w-full h-full object-cover rounded-md"
+          />
+        ) : (
+          <FontAwesomeIcon icon={faFileAlt} className="w-5 h-5 text-white/70" />
+        )}
+      </div>
+      <div className="flex-1 min-w-0 pr-6">
+        <p
+          className="text-sm font-medium text-[--chatbot-input-text-color] truncate"
+          title={file.name}
+        >
+          {file.name}
+        </p>
+      </div>
+      <button
+        onClick={onRemove}
+        aria-label="Remove file"
+        className="absolute top-1 right-1 w-2 h-2 flex items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
+      >
+        <FontAwesomeIcon icon={faTimes} className="w-3 h-3" />
+      </button>
+    </div>
+  );
+};
+
+// --- **NEW & MODIFIED**: Attachment Previews for Message Bubbles ---
+const ImageAttachmentInBubble = ({ attachment }) => (
+  <div className="mb-2 p-1 bg-black/10 rounded-lg">
+    <img
+      src={attachment.previewUrl}
+      alt={attachment.name}
+      className="w-full h-auto object-cover rounded-md max-w-[200px]"
+    />
+  </div>
+);
+const FileAttachmentAboveBubble = ({ attachment }) => (
+  <div
+    className="mb-1 px-3 py-2 bg-[--chatbot-user-msg-bg] rounded-xl rounded-br-none flex items-center gap-2 text-sm max-w-[85%] self-end"
+    style={{ color: "var(--chatbot-user-msg-text-color)" }}
+  >
+    <FontAwesomeIcon icon={faFileAlt} className="w-4 h-4 flex-shrink-0" />
+    <span className="truncate">{attachment.name}</span>
   </div>
 );
 
@@ -286,6 +391,9 @@ const formatHistoryForApi = (messages) => {
  * @param {boolean} [props.isTyping=false] - Shows a typing indicator controlled by the parent.
  * @param {function(string): void} [props.onSend] - Callback function when a user sends a message. Receives the message text.
  * @param {ChatBotTheme} [props.theme] - Theming options for the chatbot.
+ * @param {boolean} [props.enableFileUpload=false] - Enables the file upload button.
+ * @param {string} [props.fileUploadAccept='*'] - A string of comma-separated file types (e.g., '.pdf,.doc').
+ * @param {function(File): void} [props.onFileUpload] - Callback function when a file is selected.
  */
 const ChatBot = ({
   botName = "ChatBot",
@@ -309,6 +417,9 @@ const ChatBot = ({
   grokModelName = "llama3-8b-8192",
   messages: controlledMessages,
   googleSTTCredentialsPath,
+  enableFileUpload = false,
+  fileUploadAccept = "*",
+  onFileUpload = () => {},
 }) => {
   const [chatbotId] = useState(
     () => `chatbot-instance-${Math.random().toString(36).substring(2, 9)}`
@@ -324,6 +435,8 @@ const ChatBot = ({
 
   const [isRecording, setIsRecording] = useState(false);
 
+  const [file, setFile] = useState(null);
+
   const isControlled = typeof controlledMessages !== "undefined";
   const messages = isControlled ? controlledMessages : internalMessages;
   const setMessages = isControlled ? () => {} : setInternalMessages;
@@ -332,7 +445,7 @@ const ChatBot = ({
   const messagesEndRef = useRef(null);
   const launcherRef = useRef(null);
   const windowRef = useRef(null);
-
+  const fileInputRef = useRef(null);
   const recognitionRef = useRef(null);
 
   // Gemini client
@@ -617,199 +730,244 @@ const ChatBot = ({
 
   // --- Handlers ---
 
+  /**
+   * Handles sending messages, including text and files, to the appropriate AI service.
+   * This function is memoized with useCallback for performance optimization.
+   */
   const handleSend = useCallback(async () => {
+    // 1. --- PRE-SEND VALIDATION ---
+    // Exit if there's no text AND no file, or if the bot is disabled/typing.
     const trimmedInput = inputValue.trim();
-    if (!trimmedInput || disabled || isBotTyping || parentIsTyping) return;
+    if ((!trimmedInput && !file) || disabled || isBotTyping || parentIsTyping) {
+      return;
+    }
+    /**
+     * Handles sending messages. Now creates a previewUrl for image attachments.
+     */
+    const attachmentData = file
+      ? {
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          // Create a temporary URL for rendering in the message list.
+          // This URL is valid for the current browser session.
+          previewUrl: file.type.startsWith("image/")
+            ? URL.createObjectURL(file)
+            : null,
+        }
+      : null;
 
-    const newUserMessage = {
-      id: Date.now(),
+    // 2. --- IMMEDIATE UI UPDATES ---
+    // Create the user's message object and update the message list immediately
+    // for a responsive feel.
+    const userMessage = {
+      id: `user-${Date.now()}`,
       text: trimmedInput,
       sender: "user",
+      // Attach file metadata to the message for potential future use (not displayed).
+      attachment: attachmentData,
     };
-    const newMessages = [...messages, newUserMessage];
 
+    // Update the messages state. If not controlled, update internal state.
     if (!isControlled) {
-      setMessages((prev) => [...prev, newUserMessage]);
+      setMessages((prev) => [...prev, userMessage]);
     }
-    onSend(trimmedInput);
+    // Trigger the onSend prop for parent components.
+    onSend(trimmedInput, file);
+
+    // Clear the input field and start the typing indicator.
     setInputValue("");
+    setIsBotTyping(true);
 
-    if (geminiModel) {
-      setIsBotTyping(true);
-      try {
-        const chatHistory = formatHistoryForApi(newMessages);
+    // Store the file to be processed, as the `file` state will be cleared.
+    const fileToSend = file;
+    // Clear the file from the UI immediately after hitting send.
+    setFile(null);
 
-        const historyForContext = chatHistory.slice(0, -1);
-        const lastUserMessage =
-          chatHistory[chatHistory.length - 1]?.parts[0]?.text || "";
+    // 3. --- API CALL AND RESPONSE HANDLING ---
+    let botResponseText =
+      "Sorry, an error occurred. Please check the console for details.";
 
-        const chat = geminiModel.startChat({ history: historyForContext });
-        const result = await chat.sendMessage(lastUserMessage);
+    try {
+      // --- GEMINI API LOGIC ---
+      if (geminiModel) {
+        const chat = geminiModel.startChat({
+          history: formatHistoryForApi(messages),
+        });
+        const promptParts = [trimmedInput];
 
+        // If a file is attached, convert it to Base64 and add it to the prompt.
+        if (fileToSend) {
+          // Gemini Vision Pro supports various MIME types.
+          const base64Data = await fileToBase64(fileToSend);
+          promptParts.push({
+            inlineData: {
+              data: base64Data,
+              mimeType: fileToSend.type,
+            },
+          });
+        }
+        const result = await chat.sendMessage(promptParts);
         const response = await result.response;
-        const text = (await response.text()) || "(no response)";
+        botResponseText =
+          (await response.text()) || "(no response from Gemini)";
 
-        const botResponse = { id: Date.now() + 1, text, sender: "bot" };
-        setMessages((prev) => [...prev, botResponse]);
-      } catch (error) {
-        console.error("Gemini API Error:", error);
-        const errorResponse = {
-          id: Date.now() + 1,
-          text: "Sorry, an error occurred. Please try again.",
-          sender: "bot",
-        };
-        setMessages((prev) => [...prev, errorResponse]);
-      } finally {
-        setIsBotTyping(false);
-      }
-    } else if (openai) {
-      setIsBotTyping(true);
-      try {
-        const systemMessage = customInstruction
-          ? [{ role: "system", content: customInstruction }]
-          : [];
-
+        // --- OPENAI API LOGIC ---
+      } else if (openai) {
         const historyForContext = messages.map((msg) => ({
           role: msg.sender === "bot" ? "assistant" : "user",
           content: msg.text,
         }));
 
+        const userContent = [{ type: "text", text: trimmedInput }];
+
+        // OpenAI's gpt-4o and vision models primarily handle images.
+        if (fileToSend && fileToSend.type.startsWith("image/")) {
+          const base64Image = await fileToBase64(fileToSend);
+          userContent.push({
+            type: "image_url",
+            image_url: { url: `data:${fileToSend.type};base64,${base64Image}` },
+          });
+        } else if (fileToSend) {
+          console.warn(
+            "OpenAI integration currently only supports image files. File was ignored."
+          );
+          // Optionally inform the user that the file was ignored.
+          botResponseText =
+            "Note: The attached file was not an image and was ignored. ";
+        }
+
         const resp = await openai.chat.completions.create({
           model: openaiModelName,
           messages: [
-            ...systemMessage,
             ...historyForContext,
-            { role: "user", content: trimmedInput },
+            { role: "user", content: userContent },
           ],
         });
-        const text =
-          resp.choices?.[0]?.message?.content?.trim() || "(no response)";
+        const openAIResponse =
+          resp.choices?.[0]?.message?.content?.trim() ||
+          "(no response from OpenAI)";
+        botResponseText =
+          fileToSend && !fileToSend.type.startsWith("image/")
+            ? botResponseText + openAIResponse
+            : openAIResponse;
 
-        setMessages((prev) => [
-          ...prev,
-          { id: Date.now() + 1, text, sender: "bot" },
-        ]);
-      } catch (err) {
-        console.error("OpenAI Error:", err);
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: Date.now() + 1,
-            text: "Sorry, something went wrong with OpenAI.",
-            sender: "bot",
-          },
-        ]);
-      } finally {
-        setIsBotTyping(false);
-      }
-    } else if (anthropic) {
-      setIsBotTyping(true);
-      try {
-        const anthropicHistory = messages.map((msg) => ({
+        // --- ANTHROPIC (CLAUDE) API LOGIC ---
+      } else if (anthropic) {
+        const historyForContext = messages.map((msg) => ({
           role: msg.sender === "bot" ? "assistant" : "user",
           content: msg.text,
         }));
 
-        const msg = await anthropic.messages.create({
+        const userContent = [{ type: "text", text: trimmedInput }];
+
+        // Claude 3 models support images.
+        if (fileToSend && fileToSend.type.startsWith("image/")) {
+          const base64Image = await fileToBase64(fileToSend);
+          // Claude expects the image data to be added before the text content.
+          userContent.unshift({
+            type: "image",
+            source: {
+              type: "base64",
+              media_type: fileToSend.type,
+              data: base64Image,
+            },
+          });
+        } else if (fileToSend) {
+          console.warn(
+            "Anthropic integration currently only supports image files. File was ignored."
+          );
+          botResponseText =
+            "Note: The attached file was not an image and was ignored. ";
+        }
+
+        const resp = await anthropic.messages.create({
           model: anthropicModelName,
-          system: customInstruction, // Pass instruction to the dedicated 'system' parameter
+          system: customInstruction,
           messages: [
-            ...anthropicHistory,
-            { role: "user", content: trimmedInput },
+            ...historyForContext,
+            { role: "user", content: userContent },
           ],
           max_tokens: 1024,
         });
+        const claudeResponse =
+          resp.content?.[0]?.text?.trim() || "(no response from Claude)";
+        botResponseText =
+          fileToSend && !fileToSend.type.startsWith("image/")
+            ? botResponseText + claudeResponse
+            : claudeResponse;
 
-        const text = msg.content[0]?.text?.trim() || "(no response)";
-
-        setMessages((prev) => [
-          ...prev,
-          { id: Date.now() + 1, text, sender: "bot" },
-        ]);
-      } catch (err) {
-        console.error("Anthropic API Error:", err);
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: Date.now() + 1,
-            text: "Sorry, an error occurred with Claude.",
-            sender: "bot",
-          },
-        ]);
-      } finally {
-        setIsBotTyping(false);
-      }
-    } else if (grok) {
-      setIsBotTyping(true);
-      try {
-        const systemMessage = customInstruction
-          ? [{ role: "system", content: customInstruction }]
-          : [];
-
-        const grokHistory = messages.map((msg) => ({
+        // --- GROQ API LOGIC (TEXT-ONLY) ---
+      } else if (grok) {
+        let groqResponsePrefix = "";
+        // Groq models are text-only, so warn the user if a file was attached.
+        if (fileToSend) {
+          console.warn(
+            "Groq API does not support file uploads. Sending text only."
+          );
+          groqResponsePrefix =
+            "Note: The attached file was ignored as this AI model does not support file uploads. Here is my response to your text:\n\n";
+        }
+        const historyForContext = messages.map((msg) => ({
           role: msg.sender === "bot" ? "assistant" : "user",
           content: msg.text,
         }));
-
         const chatCompletion = await grok.chat.completions.create({
           messages: [
-            ...systemMessage,
-            ...grokHistory,
+            ...historyForContext,
             { role: "user", content: trimmedInput },
           ],
           model: grokModelName,
         });
+        botResponseText =
+          groqResponsePrefix +
+          (chatCompletion.choices[0]?.message?.content?.trim() ||
+            "(no response from Groq)");
 
-        const text =
-          chatCompletion.choices[0]?.message?.content?.trim() ||
-          "(no response)";
-
-        setMessages((prev) => [
-          ...prev,
-          { id: Date.now() + 1, text, sender: "bot" },
-        ]);
-      } catch (err) {
-        console.error("Groq API Error:", err);
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: Date.now() + 1,
-            text: "Sorry, an error occurred with Groq.",
-            sender: "bot",
-          },
-        ]);
-      } finally {
-        setIsBotTyping(false);
+        // --- FALLBACK LOGIC (NO API KEY) ---
+      } else {
+        botResponseText = `You said: "${trimmedInput}"`;
+        if (fileToSend) {
+          botResponseText += ` and attached a file named "${fileToSend.name}".`;
+        }
+        // Simulate network delay for a better user experience.
+        await new Promise((res) => setTimeout(res, 800));
       }
-    } else if (!isControlled) {
-      setIsBotTyping(true);
-      setTimeout(() => {
-        const defaultBotResponse = {
-          id: Date.now() + 1,
-          text: `You said: "${trimmedInput}"`,
-          sender: "bot",
-        };
-        setMessages((prev) => [...prev, defaultBotResponse]);
-        setIsBotTyping(false);
-      }, 800);
+    } catch (error) {
+      console.error("ChatBot handleSend Error:", error);
+      botResponseText = "An error occurred while processing your request.";
+    } finally {
+      const botResponse = {
+        id: `bot-${Date.now()}`,
+        text: botResponseText,
+        sender: "bot",
+        attachment: null,
+      };
+      setMessages((prev) => [...prev, botResponse]);
+      setIsBotTyping(false);
     }
   }, [
+    // Dependency array ensures the function is recreated only when necessary.
     inputValue,
+    file,
     disabled,
     isBotTyping,
     parentIsTyping,
+    isControlled,
+    messages,
     onSend,
+    setMessages,
+    setFile,
+    setInputValue,
+    setIsBotTyping,
+    customInstruction,
     geminiModel,
     openai,
     anthropic,
     grok,
-    isControlled,
-    messages,
-    setMessages,
     openaiModelName,
     anthropicModelName,
     grokModelName,
-    customInstruction, // Add to dependency array
   ]);
 
   const handleKeyPress = useCallback(
@@ -833,6 +991,21 @@ const ChatBot = ({
     if (recognitionRef.current && isRecording) {
       recognitionRef.current.stop();
       setIsRecording(false);
+    }
+  };
+
+  const handleFileUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event) => {
+    const selectedFile = event.target.files?.[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      onFileUpload(selectedFile); // Call original prop for external handling
+    }
+    if (event.target) {
+      event.target.value = null; // Allow selecting the same file again
     }
   };
 
@@ -994,6 +1167,7 @@ const ChatBot = ({
                         : "mr-auto"
                     }`}
                   >
+                    {/* AVATAR RENDERING (No changes here) */}
                     {mergedTheme.messages.showAvatars && (
                       <div className="w-7 h-7 rounded-full flex-shrink-0 overflow-hidden">
                         {renderAvatar(
@@ -1001,49 +1175,103 @@ const ChatBot = ({
                         )}
                       </div>
                     )}
-                    <motion.div
-                      layout="position"
-                      transition={{ duration: 0.2, ease: "easeOut" }}
-                      className={`px-3 py-2 ${
-                        bubbleShapeClasses[mergedTheme.messages.bubbleShape] ||
-                        bubbleShapeClasses.rounded
-                      } ${
-                        mergedTheme.messages.bubblePointer
-                          ? msg.sender === "user"
-                            ? "rounded-br-none"
-                            : "rounded-bl-none"
-                          : ""
+
+                    {/* This new wrapper handles vertical stacking of bubbles */}
+                    <div
+                      className={`flex flex-col ${
+                        msg.sender === "user" ? "items-end" : "items-start"
                       }`}
-                      style={{
-                        backgroundColor:
-                          msg.sender === "user"
-                            ? "var(--chatbot-user-msg-bg)"
-                            : "var(--chatbot-bot-msg-bg)",
-                        color:
-                          msg.sender === "user"
-                            ? "var(--chatbot-user-msg-text-color)"
-                            : "var(--chatbot-bot-msg-text-color)",
-                        fontFamily: "var(--chatbot-msg-font-family)",
-                        fontSize: "var(--chatbot-msg-font-size)",
-                      }}
                     >
-                      {msg.sender === "bot" && index === messages.length - 1 ? (
-                        <AnimatedResponseMessage
-                          text={msg.text}
-                          animationType={mergedTheme.messages.animation}
-                          components={markdownComponents}
-                        />
-                      ) : (
+                      {/* 1. ATTACHMENT BUBBLE: Renders for user messages with attachments */}
+                      {msg.sender === "user" && msg.attachment && (
                         <div
-                          className="prose prose-sm max-w-none text-inherit prose-p:my-0 prose-headings:my-2 prose-ul:my-1 prose-li:my-0.5"
-                          style={{ color: "inherit" }}
+                          className={`p-2 mb-1 max-w-full self-end ${
+                            bubbleShapeClasses[
+                              mergedTheme.messages.bubbleShape
+                            ] || bubbleShapeClasses.rounded
+                          } ${
+                            // Add pointer ONLY if there's no text bubble below it
+                            !msg.text && mergedTheme.messages.bubblePointer
+                              ? "rounded-br-none"
+                              : ""
+                          }`}
+                          style={{
+                            backgroundColor: "var(--chatbot-user-msg-bg)",
+                            color: "var(--chatbot-user-msg-text-color)",
+                          }}
                         >
-                          <ReactMarkdown components={markdownComponents}>
-                            {msg.text}
-                          </ReactMarkdown>
+                          {/* Render image preview or generic file icon */}
+                          {msg.attachment.previewUrl ? (
+                            <img
+                              src={msg.attachment.previewUrl}
+                              alt={msg.attachment.name}
+                              className="w-full h-auto object-cover rounded-md max-w-[200px]"
+                            />
+                          ) : (
+                            <div className="flex items-center gap-2 text-sm">
+                              <FontAwesomeIcon
+                                icon={faFileAlt}
+                                className="w-4 h-4 flex-shrink-0"
+                              />
+                              <span className="truncate">
+                                {msg.attachment.name}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       )}
-                    </motion.div>
+
+                      {/* 2. TEXT BUBBLE: Renders if text exists */}
+                      {msg.text && (
+                        <motion.div
+                          layout="position"
+                          transition={{ duration: 0.2, ease: "easeOut" }}
+                          className={`px-3 py-2 ${
+                            bubbleShapeClasses[
+                              mergedTheme.messages.bubbleShape
+                            ] || bubbleShapeClasses.rounded
+                          } ${
+                            // The text bubble always gets the pointer if it exists
+                            mergedTheme.messages.bubblePointer
+                              ? msg.sender === "user"
+                                ? "rounded-br-none"
+                                : "rounded-bl-none"
+                              : ""
+                          }`}
+                          style={{
+                            backgroundColor:
+                              msg.sender === "user"
+                                ? "var(--chatbot-user-msg-bg)"
+                                : "var(--chatbot-bot-msg-bg)",
+                            color:
+                              msg.sender === "user"
+                                ? "var(--chatbot-user-msg-text-color)"
+                                : "var(--chatbot-bot-msg-text-color)",
+                            fontFamily: "var(--chatbot-msg-font-family)",
+                            fontSize: "var(--chatbot-msg-font-size)",
+                          }}
+                        >
+                          {/* NOTE: We removed the old attachment preview from here */}
+                          {msg.sender === "bot" &&
+                          index === messages.length - 1 ? (
+                            <AnimatedResponseMessage
+                              text={msg.text}
+                              animationType={mergedTheme.messages.animation}
+                              components={markdownComponents}
+                            />
+                          ) : (
+                            <div
+                              className="prose prose-sm max-w-none text-inherit prose-p:my-0"
+                              style={{ color: "inherit" }}
+                            >
+                              <ReactMarkdown components={markdownComponents}>
+                                {msg.text}
+                              </ReactMarkdown>
+                            </div>
+                          )}
+                        </motion.div>
+                      )}
+                    </div>
                   </motion.div>
                 ))}
               </AnimatePresence>
@@ -1052,7 +1280,6 @@ const ChatBot = ({
                   key="typing-indicator"
                   className="flex items-end max-w-[85%] gap-2 mr-auto"
                 >
-                  {" "}
                   {mergedTheme.messages.showAvatars && (
                     <div className="w-7 h-7 rounded-full flex-shrink-0 overflow-hidden">
                       {renderAvatar(botAvatar)}
@@ -1080,7 +1307,46 @@ const ChatBot = ({
                 backgroundColor: "var(--chatbot-input-bg)",
               }}
             >
+              {/* Render the FilePreview component */}
+              <AnimatePresence>
+                {file && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <FilePreview file={file} onRemove={() => setFile(null)} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <div className="flex items-end space-x-2">
+                {enableFileUpload && (
+                  <>
+                    <button
+                      onClick={handleFileUploadClick}
+                      disabled={disabled || totalTypingStatus}
+                      aria-label="Upload File"
+                      className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{
+                        backgroundColor: "var(--chatbot-user-msg-bg)",
+                        color: "var(--chatbot-user-msg-text-color)",
+                        "--tw-ring-color": "var(--chatbot-user-msg-bg)",
+                      }}
+                    >
+                      <FontAwesomeIcon icon={faPaperclip} className="w-5 h-5" />
+                    </button>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      accept={fileUploadAccept}
+                      style={{ display: "none" }}
+                      aria-hidden="true"
+                    />
+                  </>
+                )}
                 <textarea
                   ref={inputRef}
                   rows="1"
@@ -1100,8 +1366,45 @@ const ChatBot = ({
                     lineHeight: "1.5",
                   }}
                 />
-                {!googleSTTCredentialsPath || inputValue.trim() ? (
-                  // **SEND** button when there is text
+                {isRecording ? (
+                  // 1. ALWAYS show STOP button when recording is active.
+                  <motion.button
+                    onClick={stopRecording}
+                    aria-label="Stop Recording"
+                    className="px-4 h-10 rounded-full flex items-center justify-center flex-shrink-0 font-semibold text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      backgroundColor: "var(--chatbot-user-msg-bg)",
+                      color: "var(--chatbot-user-msg-text-color)",
+                      "--tw-ring-color": "var(--chatbot-user-msg-bg)",
+                    }}
+                    animate={{ opacity: [1, 0.8, 1], scale: [1, 1.1, 1] }}
+                    transition={{
+                      duration: 1,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                  >
+                    <FontAwesomeIcon
+                      icon={faMicrophoneSlash}
+                      className="w-5 h-5"
+                    />
+                  </motion.button>
+                ) : googleSTTCredentialsPath && !inputValue.trim() ? (
+                  // 2. Show START button ONLY if not recording, STT is enabled, and there is no text.
+                  <motion.button
+                    onClick={startRecording}
+                    aria-label="Start Recording"
+                    className="px-4 h-10 rounded-full flex items-center justify-center flex-shrink-0 font-semibold text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      backgroundColor: "var(--chatbot-user-msg-bg)",
+                      color: "var(--chatbot-user-msg-text-color)",
+                      "--tw-ring-color": "var(--chatbot-user-msg-bg)",
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faMicrophone} className="w-5 h-5" />
+                  </motion.button>
+                ) : (
+                  // 3. Otherwise, show the SEND button.
                   <button
                     onClick={handleSend}
                     disabled={
@@ -1117,35 +1420,6 @@ const ChatBot = ({
                   >
                     <SendIcon />
                   </button>
-                ) : (
-                  // Show Mic if no text and STT is enabled
-                  <motion.button
-                    onClick={isRecording ? stopRecording : startRecording}
-                    aria-label={
-                      isRecording ? "Stop Recording" : "Start Recording"
-                    }
-                    className="px-4 h-10 rounded-full flex items-center justify-center flex-shrink-0 font-semibold text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{
-                      backgroundColor: "var(--chatbot-user-msg-bg)",
-                      color: "var(--chatbot-user-msg-text-color)",
-                      "--tw-ring-color": "var(--chatbot-user-msg-bg)",
-                    }}
-                    animate={
-                      isRecording
-                        ? { opacity: [1, 0.8, 1], scale: [1, 1.1, 1] }
-                        : { opacity: 1, scale: 1 }
-                    }
-                    transition={
-                      isRecording
-                        ? { duration: 1, repeat: Infinity, ease: "easeInOut" }
-                        : {}
-                    }
-                  >
-                    <FontAwesomeIcon
-                      icon={isRecording ? faMicrophoneSlash : faMicrophone}
-                      className="w-5 h-5"
-                    />
-                  </motion.button>
                 )}
               </div>
             </footer>

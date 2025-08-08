@@ -215,6 +215,13 @@ function App() {
     },
   };
 
+  const handleFileUpload = (file) => {
+    console.log("File has been selected:", file);
+    // Here, you could upload the file to your server,
+    // read its content to pass to the AI, etc.
+    // alert(`File selected: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`);
+  };
+
   return (
     <div className="fixed inset-0 bg-slate-950 overflow-hidden">
       <div className="absolute inset-0 bg-grid-slate-800 [mask-image:linear-gradient(0deg,#000,rgba(0,0,0,0.6))]"></div>
@@ -272,7 +279,11 @@ function App() {
           welcomeMessage="System online. I am Aura AI. How may I assist you with your query?"
           placeholderText="Enter your query..."
           theme={glassTheme}
-          googleSTTCredentialsPath="src/nexus-text-to-speech-50d75f778774.json"
+          googleSTTCredentialsPath="src/nexus-text-to-speech-50d75f774774.json"
+          // --- File Upload Props ---
+          enableFileUpload={true}
+          fileUploadAccept="image/*,.pdf,.doc,.docx"
+          onFileUpload={handleFileUpload}
         />
       </div>
     </div>
