@@ -339,4 +339,3 @@ Pass a `theme` object to customize the chatbot's appearance. Any property you do
 ## License
 
 This project is licensed under the MIT License.
-
