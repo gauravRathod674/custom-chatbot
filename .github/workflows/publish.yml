@@ -2,8 +2,8 @@ name: Publish to npm
 
 on:
   schedule:
-    - cron: "0 0,8,16 * * *" # 3 times a day UTC
-  workflow_dispatch: # Manual trigger
+    - cron: "0 0,8,16 * * *"
+  workflow_dispatch:
 
 jobs:
   publish:
@@ -19,9 +19,23 @@ jobs:
           registry-url: https://registry.npmjs.org/
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Check for changes in dist
+        id: git-check
+        run: |
+          git fetch origin main
+          if git diff --quiet origin/main -- dist; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
 
       - name: Bump version smartly
+        if: steps.git-check.outputs.changed == 'true'
         run: |
           DAY=$(date +'%d')
           if [ "$DAY" = "01" ]; then
@@ -31,6 +45,7 @@ jobs:
           fi
 
       - name: Publish package
+        if: steps.git-check.outputs.changed == 'true'
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
