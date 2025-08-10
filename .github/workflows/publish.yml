@@ -24,18 +24,7 @@ jobs:
       - name: Build project
         run: npm run build
 
-      - name: Check for changes in dist
-        id: git-check
-        run: |
-          git fetch origin main
-          if git diff --quiet origin/main -- dist; then
-            echo "changed=false" >> $GITHUB_OUTPUT
-          else
-            echo "changed=true" >> $GITHUB_OUTPUT
-          fi
-
       - name: Bump version smartly
-        if: steps.git-check.outputs.changed == 'true'
         run: |
           DAY=$(date +'%d')
           if [ "$DAY" = "01" ]; then
@@ -45,7 +34,6 @@ jobs:
           fi
 
       - name: Publish package
-        if: steps.git-check.outputs.changed == 'true'
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
