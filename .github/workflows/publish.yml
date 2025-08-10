@@ -25,17 +25,12 @@ jobs:
         run: |
           DAY=$(date +'%d')
           if [ "$DAY" = "01" ]; then
-            npm version minor -m "Auto minor bump: %s"
+            npm version minor --no-git-tag-version --force
           else
-            npm version patch -m "Auto patch bump: %s"
+            npm version patch --no-git-tag-version --force
           fi
+
       - name: Publish package
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Push version changes back to GitHub
-        run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-          git push
