@@ -1,0 +1,41 @@
+name: Publish to npm
+
+on:
+  schedule:
+    - cron: "0 0,8,16 * * *" # 3 times a day UTC
+  workflow_dispatch: # Manual trigger
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org/
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Bump version smartly
+        run: |
+          DAY=$(date +'%d')
+          if [ "$DAY" = "01" ]; then
+            npm version minor -m "Auto minor bump: %s"
+          else
+            npm version patch -m "Auto patch bump: %s"
+          fi
+      - name: Publish package
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Push version changes back to GitHub
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git push
