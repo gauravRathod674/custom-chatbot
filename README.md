@@ -10,7 +10,7 @@ A highly customizable, performant, and intelligent React chatbot component. Drop
 
 Here’s how beautiful and functional this chatbot can look in your React app:
 
-[![Watch the Demo on YouTube](https://github.com/gauravRathod674/custom-chatbot/raw/main/image.png)](https://youtu.be/F8KLmFdN7wE?si=qD5w6proq_iC15hd)
+[![Watch the Demo on YouTube](https://github.com/gauravRathod674/custom-chatbot/raw/main/demo_chatbot.png)](https://youtu.be/F8KLmFdN7wE?si=qD5w6proq_iC15hd)
 
 🔗 [Watch the full video on YouTube](https://youtu.be/F8KLmFdN7wE?si=qD5w6proq_iC15hd)
 
