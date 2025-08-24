@@ -274,7 +274,7 @@ function App() {
           botAvatar={<GlowingOrbIcon />}
           isOpen={false}
           geminiApiKey={GEMINI_API_KEY}
-          geminiModelName="gemini-1.5-pro-latest"
+          geminiModelName="gemini-2.5-flash"
           customInstruction="You are Aura AI, a cutting-edge assistant. Your answers should be clear, concise, and have a slightly futuristic tone. Use markdown like **bold**, *italics*, and lists where appropriate."
           welcomeMessage="System online. I am Aura AI. How may I assist you with your query?"
           placeholderText="Enter your query..."
