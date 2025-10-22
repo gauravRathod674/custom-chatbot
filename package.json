@@ -1,7 +1,7 @@
 {
   "name": "@gauravrathod674/super-customizable-chatbot",
   "private": false,
-  "version": "1.6.61",
+  "version": "1.6.62",
   "license": "MIT",
   "type": "module",
   "description": "A highly customizable React chatbot component with support for Gemini, OpenAI, Anthropic, and Groq APIs.",
